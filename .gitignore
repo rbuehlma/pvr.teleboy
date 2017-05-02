@@ -1,0 +1,6 @@
+# build artifacts
+build/
+.cproject
+.project
+.settings/
+pvr.teleboy/addon.xml
