@@ -146,7 +146,11 @@ bool TeleBoy::LoadChannels() {
   }
   yajl_tree_free(json);
 
-  json = ApiGet("/users/673752965/stations?expand=logos&language=de");
+  json = ApiGet("/users/" + userId + "/stations?expand=logos&language=de");
+  if (json == NULL) {
+    XBMC->Log(LOG_ERROR, "Error loading sorted channels.");
+    return false;
+  }
   channels = JsonParser::getArray(json, 2, "data", "items");
   for ( int index = 0; index < channels->u.array.len; ++index ) {
     int cid = YAJL_GET_INTEGER(channels->u.array.values[index]);
