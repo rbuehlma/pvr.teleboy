@@ -183,7 +183,7 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
       return ADDON_STATUS_NEED_RESTART;
     }
   }
-  return !teleboyUsername.empty() && !teleboyPassword.empty() ? ADDON_STATUS_OK : ADDON_STATUS_NEED_SETTINGS;
+  return ADDON_STATUS_OK;
 }
 
 void ADDON_Stop() {
