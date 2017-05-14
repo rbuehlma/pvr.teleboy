@@ -5,6 +5,7 @@
 #include "client.h"
 #include "JsonParser.h"
 #include "Curl.h"
+#include "UpdateThread.h"
 #include <map>
 
 /*!
@@ -74,4 +75,5 @@ private:
     vector<int> sortedChannels;
     Curl *curl;
     int64_t maxRecallSeconds;
+    UpdateThread *updateThread;
 };

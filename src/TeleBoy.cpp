@@ -93,11 +93,16 @@ TeleBoy::TeleBoy(bool favoritesOnly) :
   password(""),
   maxRecallSeconds(60*60*24*7)
 {
+  updateThread = new UpdateThread();
   curl = new Curl();
   this->favoritesOnly = favoritesOnly;
 }
 
 TeleBoy::~TeleBoy() {
+  if (updateThread != NULL) {
+    updateThread->StopThread(1000);
+    delete updateThread;
+  }
   delete curl;
 }
 
@@ -316,6 +321,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type) {
         tag.iEpgUid = JsonParser::getInt(item, 1, "id");
         tag.iClientChannelUid = JsonParser::getInt(item, 2, "station", "id");
         PVR->TransferTimerEntry(handle, &tag);
+        updateThread->SetNextRecordingUpdate(tag.endTime + 60 * 21);
 
       } else {
         PVR_RECORDING tag;

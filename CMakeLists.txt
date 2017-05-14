@@ -29,6 +29,7 @@ set(TELEBOY_SOURCES
 		src/Curl.cpp
 		src/TeleBoy.cpp
 		src/JsonParser.cpp
+		src/UpdateThread.cpp
 		 )
 
 if(WIN32)
