@@ -1,3 +1,5 @@
+v17.0.4
+ - Add some information to recordings and epg
 v17.0.3
  - Add UpdateThread to update timer and recordings
 v17.0.2

@@ -240,8 +240,8 @@ PVR_ERROR TeleBoy::GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &chan
       tag.iChannelNumber      = channel.iUniqueId;
       tag.startTime           = JsonParser::getTime(item, 1, "begin");
       tag.endTime             = JsonParser::getTime(item, 1, "end");
-      tag.strPlotOutline      = strdup(JsonParser::getString(item, 1, "short_description").c_str());
-      tag.strPlot             = strdup(JsonParser::getString(item, 1, "short_description").c_str());
+      tag.strPlotOutline      = NULL;  /* not supported */
+      tag.strPlot             = NULL;  /* not supported */
       tag.strOriginalTitle    = strdup(JsonParser::getString(item, 1, "original_title").c_str());
       tag.strCast             = NULL;  /* not supported */
       tag.strDirector         = NULL;  /*SA not supported */
@@ -255,7 +255,9 @@ PVR_ERROR TeleBoy::GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &chan
       tag.iSeriesNumber       = 0;     /* not supported */
       tag.iEpisodeNumber      = 0;     /* not supported */
       tag.iEpisodePartNumber  = 0;     /* not supported */
-      tag.strEpisodeName      = NULL;  /* not supported */
+      tag.strEpisodeName      = strdup(JsonParser::getString(item, 1, "subtitle").c_str());;  /* not supported */
+      tag.iGenreType          = EPG_GENRE_USE_STRING;
+      tag.strGenreDescription = strdup(JsonParser::getString(item, 1, "type").c_str());
       tag.iFlags              = EPG_TAG_FLAG_UNDEFINED;
 
       PVR->TransferEpgEntry(handle, &tag);
@@ -319,7 +321,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type) {
         tag.state = PVR_TIMER_STATE_SCHEDULED;
         tag.iTimerType = 1;
         tag.iEpgUid = JsonParser::getInt(item, 1, "id");
-        tag.iClientChannelUid = JsonParser::getInt(item, 2, "station", "id");
+        tag.iClientChannelUid = JsonParser::getInt(item, 1, "station_id");
         PVR->TransferTimerEntry(handle, &tag);
         updateThread->SetNextRecordingUpdate(tag.endTime + 60 * 21);
 
@@ -330,11 +332,15 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type) {
         PVR_STRCPY(tag.strRecordingId, to_string(JsonParser::getInt(item, 1, "id")).c_str());
         PVR_STRCPY(tag.strTitle, JsonParser::getString(item, 1, "title").c_str());
         PVR_STRCPY(tag.strEpisodeName, JsonParser::getString(item, 1, "subtitle").c_str());
-        PVR_STRCPY(tag.strPlot, JsonParser::getString(item, 1, "short_description").c_str());
-        tag.iChannelUid = JsonParser::getInt(item, 2, "station", "id");
+        PVR_STRCPY(tag.strPlot, JsonParser::getString(item, 1, "description").c_str());
+        PVR_STRCPY(tag.strPlotOutline, JsonParser::getString(item, 1, "short_description").c_str());
+        tag.iChannelUid = JsonParser::getInt(item, 1, "station_id");
+        PVR_STRCPY(tag.strIconPath, channelsById[tag.iChannelUid].logoPath.c_str());
+        PVR_STRCPY(tag.strChannelName, channelsById[tag.iChannelUid].name.c_str());
         tag.recordingTime = JsonParser::getTime(item, 1, "begin");
         time_t endTime = JsonParser::getTime(item, 1, "end");
         tag.iDuration = endTime -  tag.recordingTime;
+        tag.iEpgEventId = JsonParser::getInt(item, 1, "id");
         PVR_STRCPY(tag.strStreamURL, getRecordingStreamUrl(tag.strRecordingId).c_str());
 
         PVR->TransferRecordingEntry(handle, &tag);
