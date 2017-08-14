@@ -208,7 +208,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
   pCapabilities->bSupportsChannelGroups   = false;
   pCapabilities->bSupportsRecordingPlayCount = false;
   pCapabilities->bSupportsLastPlayedPosition = false;
-  pCapabilities->bSupportsRecordingsRename = true;
+  pCapabilities->bSupportsRecordingsRename = false;
   pCapabilities->bSupportsRecordingsLifetimeChange = false;
   pCapabilities->bSupportsDescrambleInfo = false;
 
