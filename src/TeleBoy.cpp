@@ -108,21 +108,22 @@ TeleBoy::~TeleBoy() {
 
 bool TeleBoy::Login(string u, string p) {
   HttpGet(tbUrl + "/login");
-  string result = HttpPost(tbUrl + "/login_check", "login=" + u +"&password=" + p + "&keep_login=1");
+  string result = HttpPost(tbUrl + "/login_check", "login=" + Utils::UrlEncode(u) +"&password=" + Utils::UrlEncode(p) + "&keep_login=1");
   bool loginOk = result.find("Anmeldung war nicht erfolgreich") == std::string::npos &&
          result.find("Falsche Eingaben") == std::string::npos;
   if (!loginOk) {
+	XBMC->Log(LOG_ERROR, "Login data invalid.");
     return false;
   }
-  int pos = result.find("userSettings =");
+  int pos = result.find("setId(");
   if (pos == std::string::npos) {
+	XBMC->Log(LOG_ERROR, "No user settings found.");
     return false;
   }
-  int endPos = result.find("};", pos);
-  string settings = result.substr(pos, endPos - pos);
-  pos = settings.find(" id:") + 5;
-  endPos = settings.find(",", pos);
-  userId = settings.substr(pos, endPos-pos);
+  pos += 6;
+  int endPos = result.find(")", pos);
+  userId = result.substr(pos, endPos-pos);
+  XBMC->Log(LOG_NOTICE, "Get userId: %s.", userId.c_str());
   return true;
 }
 
@@ -201,7 +202,6 @@ void TeleBoy::TransferChannel(ADDON_HANDLE handle, TeleBoyChannel channel, int c
   kodiChannel.iChannelNumber = channelNum;
   PVR_STRCPY(kodiChannel.strChannelName, channel.name.c_str());
   PVR_STRCPY(kodiChannel.strIconPath, channel.logoPath.c_str());
-  PVR_STRCPY(kodiChannel.strStreamURL, "pvr://stream/tv/teleboy.ts");
   PVR->TransferChannelEntry(handle, &kodiChannel);
 }
 
@@ -341,7 +341,6 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type) {
         time_t endTime = JsonParser::getTime(item, 1, "end");
         tag.iDuration = endTime -  tag.recordingTime;
         tag.iEpgEventId = JsonParser::getInt(item, 1, "id");
-        PVR_STRCPY(tag.strStreamURL, getRecordingStreamUrl(tag.strRecordingId).c_str());
 
         PVR->TransferRecordingEntry(handle, &tag);
       }
@@ -350,7 +349,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type) {
   }
 }
 
-string TeleBoy::getRecordingStreamUrl(string recordingId) {
+string TeleBoy::GetRecordingStreamUrl(string recordingId) {
   yajl_val json = ApiGet("/users/" + userId + "/stream/recording/" + recordingId);
   if (json == NULL) {
     XBMC->Log(LOG_ERROR, "Could not get URL for recording: %s.", recordingId.c_str());
@@ -365,14 +364,14 @@ bool TeleBoy::IsPlayable(const EPG_TAG &tag) {
   time_t current_time;
   time(&current_time);
   bool timeOk = ((current_time - tag.endTime) < maxRecallSeconds) && (tag.startTime < current_time);
-  if (timeOk && !GetEpgTagUrl(tag).empty()) {
+  if (timeOk && !GetEpgTagUrl(&tag).empty()) {
     return true;
   }
   return false;
 }
 
-string TeleBoy::GetEpgTagUrl(const EPG_TAG &tag) {
-  yajl_val json = ApiGet("/users/" + userId + "/stream/replay/" + to_string(tag.iUniqueBroadcastId));
+string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag) {
+  yajl_val json = ApiGet("/users/" + userId + "/stream/replay/" + to_string(tag->iUniqueBroadcastId));
   if (json == NULL) {
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");
     return "";

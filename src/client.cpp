@@ -276,28 +276,6 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
   return PVR_ERROR_NO_ERROR;
 }
 
-bool OpenLiveStream(const PVR_CHANNEL &channel)
-{
-  g_pvrTimeShift = 0;
-  std::string url = GetLiveStreamURL(channel);
-  XBMC->Log(LOG_DEBUG, "Open Livestream URL %s", url.c_str());
-  return true;
-}
-
-void CloseLiveStream(void) { }
-
-int GetCurrentClientChannel(void)
-{
-  return -1;
-}
-
-bool SwitchChannel(const PVR_CHANNEL &channel)
-{
-  CloseLiveStream();
-
-  return OpenLiveStream(channel);
-}
-
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
@@ -337,8 +315,28 @@ PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
   return PVR_ERROR_NO_ERROR;
 }
 
-const char * GetLiveStreamURL(const PVR_CHANNEL &channel)  {
-    return XBMC->UnknownToUTF8(teleboy->GetChannelStreamUrl(channel.iUniqueId).c_str());
+void setStreamProperties(PVR_NAMED_VALUE* properties, unsigned int* propertiesCount, std::string url) {
+  strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName));
+  strncpy(properties[0].strValue, url.c_str(), sizeof(properties[0].strValue));
+  *propertiesCount = 1;
+}
+
+PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount) {
+  std::string strUrl = teleboy->GetChannelStreamUrl(channel->iUniqueId);
+  if (strUrl.empty()) {
+    return PVR_ERROR_FAILED;
+  }
+  setStreamProperties(properties, propertiesCount, strUrl);
+  return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)  {
+  std::string strUrl =  teleboy->GetRecordingStreamUrl(recording->strRecordingId);;
+  if (strUrl.empty()) {
+    return PVR_ERROR_FAILED;
+  }
+  setStreamProperties(properties, propertiesCount, strUrl);
+  return PVR_ERROR_NO_ERROR;
 }
 
 /** Recording API **/
@@ -440,15 +438,18 @@ bool IsPlayable(const EPG_TAG &tag) {
   return false;
 }
 
-int GetEpgTagUrl(const EPG_TAG &tag, char *url, int urlLen) {
+PVR_ERROR GetEpgTagStreamProperties(const EPG_TAG* tag, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)  {
   if (!teleboy) {
-    return -1;
+    return PVR_ERROR_FAILED;
   }
   time(&g_pvrTimeShift);
-  g_pvrTimeShift -= tag.startTime;
-  string strUrl = teleboy->GetEpgTagUrl(tag);
-  strncpy(url, strUrl.c_str(), urlLen);
-  return urlLen;
+  g_pvrTimeShift -= tag->startTime;
+  std::string strUrl =  teleboy->GetEpgTagUrl(tag);
+  if (strUrl.empty()) {
+    return PVR_ERROR_FAILED;
+  }
+  setStreamProperties(properties, propertiesCount, strUrl);
+  return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count) {
@@ -522,5 +523,9 @@ PVR_ERROR DeleteAllRecordingsFromTrash() { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-
+bool OpenLiveStream(const PVR_CHANNEL &channel) { return false; }
+void CloseLiveStream(void) { }
+int GetCurrentClientChannel(void) { return -1;}
+bool SwitchChannel(const PVR_CHANNEL &channel) { return false; }
+PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; };
 }
