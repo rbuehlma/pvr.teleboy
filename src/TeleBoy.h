@@ -52,7 +52,8 @@ public:
     virtual bool DeleteRecording(string recordingId);
     virtual void GetRecordings(ADDON_HANDLE handle, string type);
     virtual bool IsPlayable(const EPG_TAG &tag);
-    virtual string GetEpgTagUrl(const EPG_TAG &tag);
+    virtual string GetEpgTagUrl(const EPG_TAG *tag);
+    virtual string GetRecordingStreamUrl(string recordingId);
 
 
 protected:
@@ -65,7 +66,6 @@ protected:
     virtual yajl_val ApiDelete(string url);
 
 private:
-    virtual string getRecordingStreamUrl(string recordingId);
     virtual string formatDateTime(time_t dateTime);
     string username;
     string password;

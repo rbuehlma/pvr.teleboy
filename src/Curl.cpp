@@ -92,7 +92,7 @@ string Curl::Request(string action, string url, string postData, int &statusCode
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl::WriteCallback);
   curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, Curl::HeaderCallback);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 2);
+  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 4);
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
 
   if (!cookie.empty()) {

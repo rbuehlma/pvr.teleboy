@@ -1,3 +1,8 @@
+v18.0.0
+ - Adapt for Kodi 18 Leia
+v17.0.5
+ - Initial support for Kodi 18 Leia
+ - Added minimalistic support for PVR Addon API 5.3.0
 v17.0.4
  - Add some information to recordings and epg
 v17.0.3
