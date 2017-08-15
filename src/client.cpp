@@ -318,7 +318,11 @@ PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 void setStreamProperties(PVR_NAMED_VALUE* properties, unsigned int* propertiesCount, std::string url) {
   strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName));
   strncpy(properties[0].strValue, url.c_str(), sizeof(properties[0].strValue));
-  *propertiesCount = 1;
+  strncpy(properties[1].strName, "inputstreamaddon", sizeof(properties[1].strName));
+  strncpy(properties[1].strValue, "inputstream.adaptive", sizeof(properties[1].strValue));
+  strncpy(properties[2].strName, "inputstream.adaptive.manifest_type", sizeof(properties[2].strName));
+  strncpy(properties[2].strValue, "hls", sizeof(properties[2].strValue));
+  *propertiesCount = 3;
 }
 
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount) {
