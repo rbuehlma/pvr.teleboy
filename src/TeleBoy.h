@@ -51,7 +51,8 @@ public:
     virtual bool Record(int programId);
     virtual bool DeleteRecording(string recordingId);
     virtual void GetRecordings(ADDON_HANDLE handle, string type);
-    virtual bool IsPlayable(const EPG_TAG &tag);
+    virtual bool IsPlayable(const EPG_TAG *tag);
+    virtual bool IsRecordable(const EPG_TAG *tag);
     virtual string GetEpgTagUrl(const EPG_TAG *tag);
     virtual string GetRecordingStreamUrl(string recordingId);
 

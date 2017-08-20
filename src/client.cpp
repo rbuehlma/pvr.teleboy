@@ -318,7 +318,11 @@ PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 void setStreamProperties(PVR_NAMED_VALUE* properties, unsigned int* propertiesCount, std::string url) {
   strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName));
   strncpy(properties[0].strValue, url.c_str(), sizeof(properties[0].strValue));
-  *propertiesCount = 1;
+  strncpy(properties[1].strName, PVR_STREAM_PROPERTY_INPUTSTREAMADDON, sizeof(properties[1].strName));
+  strncpy(properties[1].strValue, "inputstream.adaptive", sizeof(properties[1].strValue));
+  strncpy(properties[2].strName, "inputstream.adaptive.manifest_type", sizeof(properties[2].strName));
+  strncpy(properties[2].strValue, "hls", sizeof(properties[2].strValue));
+  *propertiesCount = 3;
 }
 
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount) {
@@ -421,21 +425,20 @@ PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size) {
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR IsRecordable(const EPG_TAG& tag, bool* isRecordable) {
-
-  time_t current_time;
-  time(&current_time);
-
-  *isRecordable = true; //tag.endTime > current_time - 60 * 60 * 24 *7;
+PVR_ERROR IsEPGTagRecordable(const EPG_TAG* tag, bool* bIsRecordable) {
+  if (!teleboy) {
+    return PVR_ERROR_FAILED;
+  }
+  *bIsRecordable = teleboy->IsRecordable(tag);
   return PVR_ERROR_NO_ERROR;
 }
 
-bool IsPlayable(const EPG_TAG &tag) {
+PVR_ERROR IsEPGTagPlayable(const EPG_TAG* tag, bool* bIsPlayable) {
   if (!teleboy) {
-    return false;
+    return PVR_ERROR_FAILED;
   }
-  return teleboy->IsPlayable(tag);
-  return false;
+  *bIsPlayable = teleboy->IsPlayable(tag);
+  return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR GetEpgTagStreamProperties(const EPG_TAG* tag, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)  {

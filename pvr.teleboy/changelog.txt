@@ -1,3 +1,5 @@
+v18.0.1
+ - Implement replay api
 v18.0.0
  - Adapt for Kodi 18 Leia
 v17.0.5

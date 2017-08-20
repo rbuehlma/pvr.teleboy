@@ -360,11 +360,21 @@ string TeleBoy::GetRecordingStreamUrl(string recordingId) {
   return url;
 }
 
-bool TeleBoy::IsPlayable(const EPG_TAG &tag) {
+bool TeleBoy::IsPlayable(const EPG_TAG *tag) {
   time_t current_time;
   time(&current_time);
-  bool timeOk = ((current_time - tag.endTime) < maxRecallSeconds) && (tag.startTime < current_time);
-  if (timeOk && !GetEpgTagUrl(&tag).empty()) {
+  bool timeOk = ((current_time - tag->endTime) < maxRecallSeconds) && (tag->startTime < current_time);
+  if (timeOk && !GetEpgTagUrl(tag).empty()) {
+    return true;
+  }
+  return false;
+}
+
+bool TeleBoy::IsRecordable(const EPG_TAG *tag) {
+  time_t current_time;
+  time(&current_time);
+  bool timeOk = ((current_time - tag->endTime) < maxRecallSeconds);
+  if (timeOk && !GetEpgTagUrl(tag).empty()) {
     return true;
   }
   return false;
