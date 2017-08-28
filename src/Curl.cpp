@@ -1,118 +1,145 @@
 #include "Curl.h"
-#include "Utils.h"
 #include "client.h"
+#include "Utils.h"
 
 using namespace std;
 using namespace ADDON;
 
-static const string setCookie = "Set-Cookie: ";
-static const string cinergy_s = "cinergy_s";
-
-string Curl::cookie = "";
-
-Curl::Curl():
-  headers(NULL)
+Curl::Curl()
 {
 }
 
-Curl::~Curl() {
-  ResetHeaders();
-}
-
-size_t Curl::WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
+Curl::~Curl()
 {
-    ((std::string*)userp)->append((char*)contents, size * nmemb);
-    return size * nmemb;
-}
-
-size_t Curl::HeaderCallback(char *buffer, size_t size, size_t nitems, void *userdata)
-{
-  std::string header(buffer, 0, nitems);
-  if (strncmp(header.c_str(), (setCookie + cinergy_s).c_str(), (setCookie + cinergy_s).size()) == 0) {
-    cookie = header.substr(setCookie.size(), string::npos);
-    cookie = cookie.substr(0, cookie.find(";", 0));
-  }
-  return nitems * size;
 }
 
 string Curl::GetSessionId() {
-  if (cookie.empty()) {
+  if (cookies.empty())
+  {
     return "";
   }
-  vector<string> parts = Utils::SplitString(cookie, '=');
+  vector<string> parts = Utils::SplitString(cookies, '=');
   string sessionId = parts[1];
   return sessionId;
 }
 
 void Curl::AddHeader(std::string name, std::string value) {
-  char buffer[255];
-  sprintf(buffer, "%s:%s", name.c_str(), value.c_str());
-  headers = curl_slist_append(headers, buffer);
+  headers[name] = value;
 }
 
 void Curl::ResetHeaders() {
-  if (headers != NULL) {
-    curl_slist_free_all(headers);
-    headers = NULL;
-  }
+  headers.clear();
 }
 
-string Curl::Delete(string url) {
-  int statusCode;
-  return Request("DELETE", url, "", statusCode);
-
-}
-
-string Curl::Post(string url, string postData, int &statusCode) {
-  return Request("", url, postData, statusCode);
-
-}
-
-string Curl::Request(string action, string url, string postData, int &statusCode) {
-  CURLcode res;
-  CURL *curl;
-  string readBuffer;
-  char errbuf[CURL_ERROR_SIZE];
-  errbuf[0] = 0;
-
-  curl = curl_easy_init();
-  if (!curl) {
-      XBMC->Log(LOG_ERROR, "curl_easy_init failed.");
-      return "";
-  }
-  if (!action.empty()) {
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, action.c_str());
-  }
-  curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
-  if (!postData.empty()) {
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData.c_str());
-  }
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl::WriteCallback);
-  curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, Curl::HeaderCallback);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-  curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 4);
-  curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
-
-  if (!cookie.empty()) {
-    curl_easy_setopt(curl, CURLOPT_COOKIE, cookie.c_str());
-  }
-  if (headers != NULL) {
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  }
-  res = curl_easy_perform(curl);
-  if(res != CURLE_OK) {
-    XBMC->Log(LOG_ERROR, "Http request failed for url %s with error: %s", url.c_str(), errbuf);
-    curl_easy_cleanup(curl);
+string Curl::Post(string url, string postData, int &statusCode)
+{
+  void* file = XBMC->CURLCreate(url.c_str());
+  if (!file)
+  {
+    statusCode = -1;
     return "";
   }
-  //curl_easy_getinfo (curl, CURLINFO_RESPONSE_CODE, &statusCode);
-  //if (statusCode != 200) {
-  //  XBMC->Log(LOG_ERROR, "HTTP failed with status code %i.", statusCode);
-  //  curl_easy_cleanup(curl);
-  //  return "";
-  //}
-  curl_easy_cleanup(curl);
-  return readBuffer;
+
+  XBMC->CURLAddOption(file, XFILE::CURL_OPTION_HEADER, "acceptencoding",
+      "gzip");
+  if (postData.size() != 0)
+  {
+    string base64 = Base64Encode((const unsigned char *) postData.c_str(),
+        postData.size(), false);
+    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_PROTOCOL, "postdata",
+        base64.c_str());
+  }
+
+  if (!cookies.empty())
+  {
+    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_PROTOCOL, "cookie",
+        cookies.c_str());
+  }
+
+  for (auto const &entry : headers)
+  {
+    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_HEADER, entry.first.c_str(),
+        entry.second.c_str());
+  }
+
+  if (!XBMC->CURLOpen(file, XFILE::READ_NO_CACHE))
+  {
+    statusCode = 403; //Fake statusCode for now
+    return "";
+  }
+  int numValues;
+  char **cookiesPtr = XBMC->GetFilePropertyValues(file,
+      XFILE::FILE_PROPERTY_RESPONSE_HEADER, "set-cookie", &numValues);
+
+  for (int i = 0; i < numValues; i++) {
+    char *cookiePtr = cookiesPtr[i];
+    if (cookiePtr && *cookiePtr)
+    {
+      string temp = cookiePtr;
+      std::string::size_type paramPos = temp.find(';');
+      if (paramPos != std::string::npos)
+        temp.resize(paramPos);
+      if (temp.find("cinergy_s") == 0)
+      {
+        cookies = temp;
+        XBMC->Log(LOG_INFO, "Got cookie: %s.", cookies.c_str());
+      }
+    }
+    XBMC->FreeString(cookiePtr);
+  }
+  XBMC->FreeString((char*)cookiesPtr);
+
+  // read the file
+  static const unsigned int CHUNKSIZE = 16384;
+  char buf[CHUNKSIZE + 1];
+  size_t nbRead;
+  string body = "";
+  while ((nbRead = XBMC->ReadFile(file, buf, CHUNKSIZE)) > 0 && ~nbRead)
+  {
+    buf[nbRead] = 0x0;
+    body += buf;
+  }
+
+  XBMC->CloseFile(file);
+  statusCode = 200;
+  return body;
+}
+
+std::string Curl::Base64Encode(unsigned char const* in, unsigned int in_len,
+    bool urlEncode)
+{
+  std::string ret;
+  int i(3);
+  unsigned char c_3[3];
+  unsigned char c_4[4];
+
+  const char *to_base64 =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  while (in_len)
+  {
+    i = in_len > 2 ? 3 : in_len;
+    in_len -= i;
+    c_3[0] = *(in++);
+    c_3[1] = i > 1 ? *(in++) : 0;
+    c_3[2] = i > 2 ? *(in++) : 0;
+
+    c_4[0] = (c_3[0] & 0xfc) >> 2;
+    c_4[1] = ((c_3[0] & 0x03) << 4) + ((c_3[1] & 0xf0) >> 4);
+    c_4[2] = ((c_3[1] & 0x0f) << 2) + ((c_3[2] & 0xc0) >> 6);
+    c_4[3] = c_3[2] & 0x3f;
+
+    for (int j = 0; (j < i + 1); ++j)
+    {
+      if (urlEncode && to_base64[c_4[j]] == '+')
+        ret += "%2B";
+      else if (urlEncode && to_base64[c_4[j]] == '/')
+        ret += "%2F";
+      else
+        ret += to_base64[c_4[j]];
+    }
+  }
+  while ((i++ < 3))
+    ret += urlEncode ? "%3D" : "=";
+  return ret;
 }

@@ -2,9 +2,6 @@
 #include "TeleBoy.h"
 #include "kodi/xbmc_pvr_dll.h"
 #include "kodi/libKODI_guilib.h"
-#include <iostream>
-
-
 
 using namespace ADDON;
 
@@ -16,113 +13,86 @@ using namespace ADDON;
 #include "to_string.h"
 #endif
 
-
 ADDON_STATUS m_CurStatus = ADDON_STATUS_UNKNOWN;
 TeleBoy *teleboy = NULL;
-bool m_bIsPlaying = false;
 time_t g_pvrTimeShift;
-
 
 /* User adjustable settings are saved here.
  * Default values are defined inside client.h
  * and exported to the other source files.
  */
-std::string g_strUserPath   = "";
+std::string g_strUserPath = "";
 std::string g_strClientPath = "";
 
 CHelper_libXBMC_addon *XBMC = NULL;
-CHelper_libXBMC_pvr   *PVR  = NULL;
+CHelper_libXBMC_pvr *PVR = NULL;
 
-std::string teleboyUsername    = "";
-std::string teleboyPassword    = "";
-bool      teleboyFavoritesOnly = false;
-int         g_iStartNumber  = 1;
-bool        g_bTSOverride   = true;
-bool        g_bCacheM3U     = false;
-bool        g_bCacheEPG     = false;
-int         g_iEPGLogos     = 0;
+std::string teleboyUsername = "";
+std::string teleboyPassword = "";
+bool teleboyFavoritesOnly = false;
 
-
-
-extern std::string PathCombine(const std::string &strPath, const std::string &strFileName)
+extern "C"
 {
-    std::string strResult = strPath;
-    if (strResult.at(strResult.size() - 1) == '\\' ||
-        strResult.at(strResult.size() - 1) == '/')
-    {
-        strResult.append(strFileName);
-    }
-    else
-    {
-        strResult.append("/");
-        strResult.append(strFileName);
-    }
 
-    return strResult;
-}
-
-
-extern std::string GetUserFilePath(const std::string &strFileName)
+void ADDON_ReadSettings(void)
 {
-    return PathCombine(g_strUserPath, strFileName);
+  char buffer[1024];
+  bool boolBuffer;
+  XBMC->Log(LOG_DEBUG, "Read settings");
+  if (XBMC->GetSetting("username", &buffer))
+  {
+    teleboyUsername = buffer;
+  }
+  if (XBMC->GetSetting("password", &buffer))
+  {
+    teleboyPassword = buffer;
+  }
+  if (XBMC->GetSetting("favoritesonly", &boolBuffer))
+  {
+    teleboyFavoritesOnly = boolBuffer;
+  }
+  XBMC->Log(LOG_DEBUG, "End Readsettings");
 }
 
-extern "C" {
+ADDON_STATUS ADDON_Create(void *hdl, void *props)
+{
+  if (!hdl || !props)
+  {
+    return ADDON_STATUS_UNKNOWN;
+  }
 
-void ADDON_ReadSettings(void) {
-    char buffer[1024];
-    bool boolBuffer;
-    XBMC->Log(LOG_DEBUG, "Read settings");
-    if (XBMC->GetSetting("username", &buffer))
-    {
-        teleboyUsername = buffer;
-    }
-    if (XBMC->GetSetting("password", &buffer))
-    {
-        teleboyPassword = buffer;
-    }
-    if (XBMC->GetSetting("favoritesonly", &boolBuffer))
-    {
-        teleboyFavoritesOnly = boolBuffer;
-    }
-    XBMC->Log(LOG_DEBUG, "End Readsettings");
-}
+  g_pvrTimeShift = 0;
 
-ADDON_STATUS ADDON_Create(void *hdl, void *props) {
-    if (!hdl || !props) {
-        return ADDON_STATUS_UNKNOWN;
-    }
+  PVR_PROPERTIES *pvrprops = (PVR_PROPERTIES *) props;
 
-    g_pvrTimeShift = 0;
+  XBMC = new CHelper_libXBMC_addon;
+  XBMC->RegisterMe(hdl);
 
-    PVR_PROPERTIES *pvrprops = (PVR_PROPERTIES *) props;
+  if (!XBMC->RegisterMe(hdl))
+  {
+    SAFE_DELETE(XBMC);
+    return ADDON_STATUS_PERMANENT_FAILURE;
+  }
 
-    XBMC = new CHelper_libXBMC_addon;
-    XBMC->RegisterMe(hdl);
+  PVR = new CHelper_libXBMC_pvr;
+  if (!PVR->RegisterMe(hdl))
+  {
+    SAFE_DELETE(PVR);
+    SAFE_DELETE(XBMC);
+    return ADDON_STATUS_PERMANENT_FAILURE;
+  }
 
-    if (!XBMC->RegisterMe(hdl)) {
-        SAFE_DELETE(XBMC);
-        return ADDON_STATUS_PERMANENT_FAILURE;
-    }
+  XBMC->Log(LOG_DEBUG, "%s - Creating the PVR Teleboy add-on", __FUNCTION__);
 
-    PVR = new CHelper_libXBMC_pvr;
-    if (!PVR->RegisterMe(hdl)) {
-        SAFE_DELETE(PVR);
-        SAFE_DELETE(XBMC);
-        return ADDON_STATUS_PERMANENT_FAILURE;
-    }
+  m_CurStatus = ADDON_STATUS_NEED_SETTINGS;
 
-    XBMC->Log(LOG_DEBUG, "%s - Creating the PVR Teleboy add-on", __FUNCTION__);
+  g_strClientPath = pvrprops->strClientPath;
+  g_strUserPath = pvrprops->strUserPath;
 
-    m_CurStatus = ADDON_STATUS_NEED_SETTINGS;
-
-    g_strClientPath = pvrprops->strClientPath;
-    g_strUserPath = pvrprops->strUserPath;
-
-    teleboyUsername = "";
-    teleboyPassword = "";
-    ADDON_ReadSettings();
-    XBMC->Log(LOG_DEBUG, "Create Teleboy");
+  teleboyUsername = "";
+  teleboyPassword = "";
+  ADDON_ReadSettings();
+  XBMC->Log(LOG_DEBUG, "Create Teleboy");
     teleboy = new TeleBoy(teleboyFavoritesOnly);
     XBMC->Log(LOG_DEBUG, "Teleboy created");
     if (!teleboyUsername.empty() && !teleboyPassword.empty()) {
@@ -137,40 +107,50 @@ ADDON_STATUS ADDON_Create(void *hdl, void *props) {
       }
     }
 
-    return m_CurStatus;
+
+  return m_CurStatus;
 }
 
-ADDON_STATUS ADDON_GetStatus() {
-    return m_CurStatus;
+ADDON_STATUS ADDON_GetStatus()
+{
+  return m_CurStatus;
 }
 
-void ADDON_Destroy() {
+void ADDON_Destroy()
+{
   SAFE_DELETE(teleboy);
   m_CurStatus = ADDON_STATUS_UNKNOWN;
 }
 
-ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue) {
+ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
+{
   string name = settingName;
 
-  if (name == "username") {
-    string username = (const char*)settingValue;
-    if (username != teleboyUsername) {
+  if (name == "username")
+  {
+    string username = (const char*) settingValue;
+    if (username != teleboyUsername)
+    {
       teleboyUsername = username;
       return ADDON_STATUS_NEED_RESTART;
     }
   }
 
-  if (name == "password") {
-    string password = (const char*)settingValue;
-    if (password != teleboyPassword) {
+  if (name == "password")
+  {
+    string password = (const char*) settingValue;
+    if (password != teleboyPassword)
+    {
       teleboyPassword = password;
       return ADDON_STATUS_NEED_RESTART;
     }
   }
 
-  if (name == "favoritesonly") {
-    bool favOnly = *(bool *)settingValue;
-    if (favOnly != teleboyFavoritesOnly) {
+  if (name == "favoritesonly")
+  {
+    bool favOnly = *(bool *) settingValue;
+    if (favOnly != teleboyFavoritesOnly)
+    {
       teleboyFavoritesOnly = favOnly;
       return ADDON_STATUS_NEED_RESTART;
     }
@@ -178,11 +158,13 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
   return ADDON_STATUS_OK;
 }
 
+void ADDON_Stop()
+{
+}
 
 /***********************************************************
  * PVR Client AddOn specific public library functions
  ***********************************************************/
-
 
 void OnSystemSleep()
 {
@@ -202,17 +184,18 @@ void OnPowerSavingDeactivated()
 
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
-  pCapabilities->bSupportsEPG             = true;
-  pCapabilities->bSupportsTV              = true;
-  pCapabilities->bSupportsRadio           = false;
-  pCapabilities->bSupportsChannelGroups   = false;
+  pCapabilities->bSupportsEPG = true;
+  pCapabilities->bSupportsTV = true;
+  pCapabilities->bSupportsRadio = false;
+  pCapabilities->bSupportsChannelGroups = false;
   pCapabilities->bSupportsRecordingPlayCount = false;
   pCapabilities->bSupportsLastPlayedPosition = false;
   pCapabilities->bSupportsRecordingsRename = false;
   pCapabilities->bSupportsRecordingsLifetimeChange = false;
   pCapabilities->bSupportsDescrambleInfo = false;
 
-  if (teleboy) {
+  if (teleboy)
+  {
     teleboy->GetAddonCapabilities(pCapabilities);
   }
 
@@ -242,14 +225,8 @@ const char *GetBackendHostname(void)
   return "";
 }
 
-PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
-{
-  *iTotal = 0;
-  *iUsed  = 0;
-  return PVR_ERROR_NO_ERROR;
-}
-
-PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
+PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel,
+    time_t iStart, time_t iEnd)
 {
   if (teleboy)
     return teleboy->GetEPGForChannel(handle, channel, iStart, iEnd);
@@ -267,13 +244,35 @@ int GetChannelsAmount(void)
 
 PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 {
-  if(bRadio)
+  if (bRadio)
     return PVR_ERROR_NO_ERROR;
 
   if (teleboy)
     return teleboy->GetChannels(handle, bRadio);
 
   return PVR_ERROR_NO_ERROR;
+}
+
+bool OpenLiveStream(const PVR_CHANNEL &channel)
+{
+  return false;
+}
+
+void CloseLiveStream(void)
+{
+
+}
+
+int GetCurrentClientChannel(void)
+{
+  return -1;
+}
+
+bool SwitchChannel(const PVR_CHANNEL &channel)
+{
+  CloseLiveStream();
+
+  return OpenLiveStream(channel);
 }
 
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties)
@@ -283,60 +282,54 @@ PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties)
 
 int GetChannelGroupsAmount(void)
 {
-  //return teleboy->GetChannelGroupsAmount();
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 {
-    if(bRadio)
-        return PVR_ERROR_NO_ERROR;
-    //if (teleboy)
-    //    return teleboy->GetChannelGroups(handle);
-
-    return PVR_ERROR_SERVER_ERROR;
+  return PVR_ERROR_SERVER_ERROR;
 }
 
-PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group)
+PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle,
+    const PVR_CHANNEL_GROUP &group)
 {
-
-    //if (teleboy)
-    //    return teleboy->GetChannelGroupMembers(handle, group);
-
-    return PVR_ERROR_SERVER_ERROR;
-
+  return PVR_ERROR_SERVER_ERROR;
 }
 
-PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+void setStreamProperties(PVR_NAMED_VALUE* properties,
+    unsigned int* propertiesCount, std::string url)
 {
-  snprintf(signalStatus.strAdapterName, sizeof(signalStatus.strAdapterName), "Teleboy Adapter 1");
-  snprintf(signalStatus.strAdapterStatus, sizeof(signalStatus.strAdapterStatus), "OK");
-
-  return PVR_ERROR_NO_ERROR;
-}
-
-void setStreamProperties(PVR_NAMED_VALUE* properties, unsigned int* propertiesCount, std::string url) {
-  strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL, sizeof(properties[0].strName));
+  strncpy(properties[0].strName, PVR_STREAM_PROPERTY_STREAMURL,
+      sizeof(properties[0].strName));
   strncpy(properties[0].strValue, url.c_str(), sizeof(properties[0].strValue));
-  strncpy(properties[1].strName, PVR_STREAM_PROPERTY_INPUTSTREAMADDON, sizeof(properties[1].strName));
-  strncpy(properties[1].strValue, "inputstream.adaptive", sizeof(properties[1].strValue));
-  strncpy(properties[2].strName, "inputstream.adaptive.manifest_type", sizeof(properties[2].strName));
+  strncpy(properties[1].strName, PVR_STREAM_PROPERTY_INPUTSTREAMADDON,
+      sizeof(properties[1].strName));
+  strncpy(properties[1].strValue, "inputstream.adaptive",
+      sizeof(properties[1].strValue));
+  strncpy(properties[2].strName, "inputstream.adaptive.manifest_type",
+      sizeof(properties[2].strName));
   strncpy(properties[2].strValue, "hls", sizeof(properties[2].strValue));
   *propertiesCount = 3;
 }
 
-PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount) {
+PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel,
+    PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)
+{
   std::string strUrl = teleboy->GetChannelStreamUrl(channel->iUniqueId);
-  if (strUrl.empty()) {
+  if (strUrl.empty())
+  {
     return PVR_ERROR_FAILED;
   }
   setStreamProperties(properties, propertiesCount, strUrl);
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)  {
-  std::string strUrl =  teleboy->GetRecordingStreamUrl(recording->strRecordingId);;
-  if (strUrl.empty()) {
+PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording,
+    PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)
+{
+  std::string strUrl = teleboy->GetRecordingStreamUrl(recording->strRecordingId);
+  if (strUrl.empty())
+  {
     return PVR_ERROR_FAILED;
   }
   setStreamProperties(properties, propertiesCount, strUrl);
@@ -344,63 +337,52 @@ PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording, PVR_NAMED
 }
 
 /** Recording API **/
-int GetRecordingsAmount(bool deleted) {
+int GetRecordingsAmount(bool deleted)
+{
   return 0;
 }
 
-PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted) {
-  if (deleted) {
+PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
+{
+  if (deleted)
+  {
     return PVR_ERROR_NO_ERROR;
   }
-  if (!teleboy) {
+  if (!teleboy)
+  {
     return PVR_ERROR_SERVER_ERROR;
   }
-  teleboy->GetRecordings(handle,"ready");
+  teleboy->GetRecordings(handle, "ready");
   return PVR_ERROR_NO_ERROR;
 }
 
-int GetTimersAmount(void) {
-  return 0;
+int GetTimersAmount(void)
+{
+	return 0;
 }
 
-PVR_ERROR GetTimers(ADDON_HANDLE handle) {
-  if (!teleboy) {
+PVR_ERROR GetTimers(ADDON_HANDLE handle)
+{
+  if (!teleboy)
+  {
     return PVR_ERROR_SERVER_ERROR;
   }
-  teleboy->GetRecordings(handle,"planned");
+  teleboy->GetRecordings(handle, "planned");
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR AddTimer(const PVR_TIMER &timer) {
-  if (!teleboy) {
+PVR_ERROR AddTimer(const PVR_TIMER &timer)
+{
+  if (!teleboy)
+  {
     return PVR_ERROR_SERVER_ERROR;
   }
-  if (timer.iEpgUid <= EPG_TAG_INVALID_UID) {
+  if (timer.iEpgUid <= EPG_TAG_INVALID_UID)
+  {
     return PVR_ERROR_REJECTED;
   }
-  if (!teleboy->Record(timer.iEpgUid)) {
-    return PVR_ERROR_REJECTED;
-  }
-  PVR->TriggerTimerUpdate();
-  PVR->TriggerRecordingUpdate();
-  return PVR_ERROR_NO_ERROR;
-}
-
-PVR_ERROR DeleteRecording(const PVR_RECORDING &recording) {
-  if (!teleboy) {
-    return PVR_ERROR_SERVER_ERROR;
-  }
-  if (!teleboy->DeleteRecording(recording.strRecordingId)) {
-    return PVR_ERROR_REJECTED;
-  }
-  return PVR_ERROR_NO_ERROR;
-}
-
-PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete) {
-  if (!teleboy) {
-    return PVR_ERROR_SERVER_ERROR;
-  }
-  if (!teleboy->DeleteRecording(to_string(timer.iClientIndex))) {
+  if (!teleboy->Record(timer.iEpgUid))
+  {
     return PVR_ERROR_REJECTED;
   }
   PVR->TriggerTimerUpdate();
@@ -408,7 +390,36 @@ PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete) {
   return PVR_ERROR_NO_ERROR;
 }
 
-void addTimerType(PVR_TIMER_TYPE types[], int idx, int attributes) {
+PVR_ERROR DeleteRecording(const PVR_RECORDING &recording)
+{
+  if (!teleboy)
+  {
+    return PVR_ERROR_SERVER_ERROR;
+  }
+  if (!teleboy->DeleteRecording(recording.strRecordingId))
+  {
+    return PVR_ERROR_REJECTED;
+  }
+  return PVR_ERROR_NO_ERROR;
+}
+
+PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
+{
+  if (!teleboy)
+  {
+    return PVR_ERROR_SERVER_ERROR;
+  }
+  if (!teleboy->DeleteRecording(to_string(timer.iClientIndex)))
+  {
+    return PVR_ERROR_REJECTED;
+  }
+  PVR->TriggerTimerUpdate();
+  PVR->TriggerRecordingUpdate();
+  return PVR_ERROR_NO_ERROR;
+}
+
+void addTimerType(PVR_TIMER_TYPE types[], int idx, int attributes)
+{
   types[idx].iId = idx + 1;
   types[idx].iAttributes = attributes;
   types[idx].iPrioritiesSize = 0;
@@ -418,117 +429,240 @@ void addTimerType(PVR_TIMER_TYPE types[], int idx, int attributes) {
   types[idx].iMaxRecordingsSize = 0;
 }
 
-PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size) {
+PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
+{
   addTimerType(types, 0, PVR_TIMER_TYPE_ATTRIBUTE_NONE);
   addTimerType(types, 1, PVR_TIMER_TYPE_IS_MANUAL);
   *size = 2;
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR IsEPGTagRecordable(const EPG_TAG* tag, bool* bIsRecordable) {
-  if (!teleboy) {
+PVR_ERROR IsEPGTagRecordable(const EPG_TAG* tag, bool* bIsRecordable)
+{
+  if (!teleboy)
+  {
     return PVR_ERROR_FAILED;
   }
   *bIsRecordable = teleboy->IsRecordable(tag);
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR IsEPGTagPlayable(const EPG_TAG* tag, bool* bIsPlayable) {
-  if (!teleboy) {
+PVR_ERROR IsEPGTagPlayable(const EPG_TAG* tag, bool* bIsPlayable)
+{
+  if (!teleboy)
+  {
     return PVR_ERROR_FAILED;
   }
   *bIsPlayable = teleboy->IsPlayable(tag);
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR GetEpgTagStreamProperties(const EPG_TAG* tag, PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)  {
-  if (!teleboy) {
+PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG* tag,
+    PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
+{
+  std::string strUrl = teleboy->GetEpgTagUrl(tag);
+  if (strUrl.empty())
+  {
     return PVR_ERROR_FAILED;
   }
-  time(&g_pvrTimeShift);
-  g_pvrTimeShift -= tag->startTime;
-  std::string strUrl =  teleboy->GetEpgTagUrl(tag);
-  if (strUrl.empty()) {
-    return PVR_ERROR_FAILED;
-  }
-  setStreamProperties(properties, propertiesCount, strUrl);
+  setStreamProperties(properties, iPropertiesCount, strUrl);
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count) {
-  if (!teleboy) {
+PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count)
+{
+  if (!teleboy)
+  {
     return PVR_ERROR_FAILED;
   }
-  //teleboy->SetRecordingPlayCount(recording, count);
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording, int lastplayedposition) {
-  if (!teleboy) {
+PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording,
+    int lastplayedposition)
+{
+  if (!teleboy)
+  {
     return PVR_ERROR_FAILED;
   }
-  //teleboy->SetRecordingLastPlayedPosition(recording, lastplayedposition);
   return PVR_ERROR_NO_ERROR;
 }
 
-int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording) {
-  if (!teleboy) {
-    return -1;
-  }
-
-  //return teleboy->GetRecordingLastPlayedPosition(recording);
-  return -1;
+int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording)
+{
+	return -1;
 }
 
-time_t GetPlayingTime() {
+time_t GetPlayingTime()
+{
   time_t current_time;
   time(&current_time);
   return current_time - g_pvrTimeShift;
 }
 
 /** UNUSED API FUNCTIONS */
-bool CanPauseStream(void) { return true; }
-PVR_ERROR OpenDialogChannelScan(void) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook, const PVR_MENUHOOK_DATA &item) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR RenameChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR MoveChannel(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL &channel) { return PVR_ERROR_NOT_IMPLEMENTED; }
-bool OpenRecordedStream(const PVR_RECORDING &recording) { return false; }
-void CloseRecordedStream(void) {}
-int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize) { return 0; }
-long long SeekRecordedStream(long long iPosition, int iWhence /* = SEEK_SET */) { return 0; }
-long long PositionRecordedStream(void) { return -1; }
-long long LengthRecordedStream(void) { return 0; }
-void DemuxReset(void) {}
-void DemuxFlush(void) {}
-int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) { return 0; }
-long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */) { return -1; }
-long long PositionLiveStream(void) { return -1; }
-long long LengthLiveStream(void) { return -1; }
-PVR_ERROR RenameRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*) { return PVR_ERROR_NOT_IMPLEMENTED; };
-PVR_ERROR UpdateTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED; }
-void DemuxAbort(void) {}
-DemuxPacket* DemuxRead(void) { return NULL; }
-unsigned int GetChannelSwitchDelay(void) { return 0; }
-bool IsTimeshifting(void) { return false; }
-bool IsRealTimeStream(void) { return true; }
-void PauseStream(bool bPaused) {}
-bool CanSeekStream(void) { return true; }
-bool SeekTime(double,bool,double*) { return false; }
-void SetSpeed(int) {};
-time_t GetBufferTimeStart() { return 0; }
-time_t GetBufferTimeEnd() { return 0; }
-PVR_ERROR UndeleteRecording(const PVR_RECORDING& recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR DeleteAllRecordingsFromTrash() { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR SetEPGTimeFrame(int) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*) { return PVR_ERROR_NOT_IMPLEMENTED; }
-bool OpenLiveStream(const PVR_CHANNEL &channel) { return false; }
-void CloseLiveStream(void) { }
-int GetCurrentClientChannel(void) { return -1;}
-bool SwitchChannel(const PVR_CHANNEL &channel) { return false; }
-PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times) { return PVR_ERROR_NOT_IMPLEMENTED; };
+bool CanPauseStream(void)
+{
+  return true;
+}
+PVR_ERROR OpenDialogChannelScan(void)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook,
+    const PVR_MENUHOOK_DATA &item)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR DeleteChannel(const PVR_CHANNEL &channel)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR RenameChannel(const PVR_CHANNEL &channel)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR MoveChannel(const PVR_CHANNEL &channel)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR OpenDialogChannelSettings(const PVR_CHANNEL &channel)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR OpenDialogChannelAdd(const PVR_CHANNEL &channel)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+bool OpenRecordedStream(const PVR_RECORDING &recording)
+{
+  return false;
+}
+void CloseRecordedStream(void)
+{
+}
+int ReadRecordedStream(unsigned char *pBuffer, unsigned int iBufferSize)
+{
+  return 0;
+}
+long long SeekRecordedStream(long long iPosition, int iWhence /* = SEEK_SET */)
+{
+  return 0;
+}
+long long PositionRecordedStream(void)
+{
+  return -1;
+}
+long long LengthRecordedStream(void)
+{
+  return 0;
+}
+void DemuxReset(void)
+{
+}
+void DemuxFlush(void)
+{
+}
+int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize)
+{
+  return 0;
+}
+long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */)
+{
+  return -1;
+}
+long long PositionLiveStream(void)
+{
+  return -1;
+}
+long long LengthLiveStream(void)
+{
+  return -1;
+}
+PVR_ERROR RenameRecording(const PVR_RECORDING &recording)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR GetRecordingEdl(const PVR_RECORDING&, PVR_EDL_ENTRY[], int*)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+;
+PVR_ERROR UpdateTimer(const PVR_TIMER &timer)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+void DemuxAbort(void)
+{
+}
+DemuxPacket* DemuxRead(void)
+{
+  return NULL;
+}
+unsigned int GetChannelSwitchDelay(void)
+{
+  return 0;
+}
+bool IsTimeshifting(void)
+{
+  return false;
+}
+bool IsRealTimeStream(void)
+{
+  return true;
+}
+void PauseStream(bool bPaused)
+{
+}
+bool CanSeekStream(void)
+{
+  return true;
+}
+bool SeekTime(double, bool, double*)
+{
+  return false;
+}
+void SetSpeed(int)
+{
+}
+time_t GetBufferTimeStart()
+{
+  return 0;
+}
+time_t GetBufferTimeEnd()
+{
+  return 0;
+}
+PVR_ERROR UndeleteRecording(const PVR_RECORDING& recording)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR DeleteAllRecordingsFromTrash()
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR SetEPGTimeFrame(int)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR SetRecordingLifetime(const PVR_RECORDING*)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES *times)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
 }
