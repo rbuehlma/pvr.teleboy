@@ -85,9 +85,8 @@ string Curl::Post(string url, string postData, int &statusCode)
         XBMC->Log(LOG_INFO, "Got cookie: %s.", cookies.c_str());
       }
     }
-    XBMC->FreeString(cookiePtr);
   }
-  XBMC->FreeString((char*)cookiesPtr);
+  XBMC->FreeStringArray(cookiesPtr, numValues);
 
   // read the file
   static const unsigned int CHUNKSIZE = 16384;

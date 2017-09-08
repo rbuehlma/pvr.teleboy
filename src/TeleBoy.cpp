@@ -73,6 +73,7 @@ bool TeleBoy::ApiGet(string url, Document &doc)
 
 bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 {
+  std::lock_guard<std::mutex> guard(curlMutex);
   ApiSetHeader();
   if (!postData.empty())
   {
@@ -92,7 +93,7 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
 TeleBoy::TeleBoy(bool favoritesOnly) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7)
 {
-  updateThread = new UpdateThread();
+  updateThread = new UpdateThread(this);
   curl = new Curl();
   this->favoritesOnly = favoritesOnly;
 }
@@ -109,6 +110,7 @@ TeleBoy::~TeleBoy()
 
 bool TeleBoy::Login(string u, string p)
 {
+  std::lock_guard<std::mutex> guard(curlMutex);
   HttpGet("https://www.teleboy.ch/login");
   curl->AddHeader("Referer", "https://www.teleboy.ch/login");
   curl->AddHeader("redirect-limit", "0");
@@ -135,7 +137,7 @@ bool TeleBoy::Login(string u, string p)
     XBMC->Log(LOG_ERROR, "Login data invalid.");
     return false;
   }
-  int pos = result.find("setId(");
+  unsigned int pos = result.find("setId(");
   if (pos == std::string::npos)
   {
     XBMC->Log(LOG_ERROR, "No user settings found.");
@@ -258,8 +260,15 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   return url;
 }
 
-PVR_ERROR TeleBoy::GetEPGForChannel(ADDON_HANDLE handle,
-    const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
+void TeleBoy::GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
+{
+  if (updateThread != NULL)
+  {
+    updateThread->LoadEpg(channel.iUniqueId, iStart, iEnd);
+  }
+}
+ 
+void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t iEnd)
 {
   int totals = -1;
   int sum = 0;
@@ -269,11 +278,10 @@ PVR_ERROR TeleBoy::GetEPGForChannel(ADDON_HANDLE handle,
     if (!ApiGet("/users/" + userId + "/broadcasts?begin=" + formatDateTime(iStart)
             + "&end=" + formatDateTime(iEnd) + "&expand=logos&limit=500&skip="
             + to_string(sum) + "&sort=station&station="
-            + to_string(channel.iUniqueId), json))
+            + to_string(uniqueChannelId), json))
     {
-      XBMC->Log(LOG_ERROR, "Error getting epg for channel %i.",
-          channel.iUniqueId);
-      return PVR_ERROR_SERVER_ERROR;
+      XBMC->Log(LOG_ERROR, "Error getting epg for channel %i.", uniqueChannelId);
+      return;
     }
     totals = json["data"]["total"].GetInt();
     const Value& items = json["data"]["items"];
@@ -286,7 +294,7 @@ PVR_ERROR TeleBoy::GetEPGForChannel(ADDON_HANDLE handle,
       memset(&tag, 0, sizeof(EPG_TAG));
       tag.iUniqueBroadcastId = item["id"].GetInt();
       tag.strTitle = strdup(item["title"].GetString());
-      tag.iUniqueChannelId = channel.iUniqueId;
+      tag.iUniqueChannelId = uniqueChannelId;
       tag.startTime = StringToTime(item["begin"].GetString());
       tag.endTime = StringToTime(item["end"].GetString());
       tag.strPlotOutline = nullptr; /* not supported */
@@ -310,12 +318,12 @@ PVR_ERROR TeleBoy::GetEPGForChannel(ADDON_HANDLE handle,
       tag.strGenreDescription = strdup(item["type"].GetString());
       tag.iFlags = EPG_TAG_FLAG_UNDEFINED;
 
-      PVR->TransferEpgEntry(handle, &tag);
+      PVR->EpgEventStateChange(&tag, EPG_EVENT_CREATED);
     }
     XBMC->Log(LOG_DEBUG, "Loaded %i of %i epg entries for channel %i.", sum,
-        totals, channel.iUniqueId);
+        totals, uniqueChannelId);
   }
-  return PVR_ERROR_NO_ERROR;
+  return;
 }
 
 string TeleBoy::formatDateTime(time_t dateTime)

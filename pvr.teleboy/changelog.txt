@@ -1,3 +1,7 @@
+v18.0.2
+ - Switch to kodi curl implementation
+ - Load EPG async
+ - Cleanup
 v18.0.1
  - Implement replay api
 v18.0.0

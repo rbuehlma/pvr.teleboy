@@ -2,6 +2,7 @@
 #include "UpdateThread.h"
 #include "Curl.h"
 #include <map>
+#include <mutex>
 #include "rapidjson/document.h"
 
 using namespace std;
@@ -40,8 +41,8 @@ public:
   virtual void TransferChannel(ADDON_HANDLE handle, TeleBoyChannel channel,
       int channelNum);
   virtual std::string GetChannelStreamUrl(int uniqueId);
-  virtual PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle,
-      const PVR_CHANNEL &channel, time_t iStart, time_t iEnd);
+  virtual void GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart, time_t iEnd);
+  void GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t iEnd);
   virtual void GetRecordings(ADDON_HANDLE handle, string type);
   virtual string GetRecordingStreamUrl(string recordingId);
   virtual bool Record(int programId);
@@ -59,6 +60,7 @@ private:
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
   Curl *curl;
+  std::mutex curlMutex;
   UpdateThread *updateThread;
 
   virtual string formatDateTime(time_t dateTime);
