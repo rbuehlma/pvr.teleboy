@@ -342,7 +342,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 string TeleBoy::formatDateTime(time_t dateTime)
 {
   char buff[20];
-  strftime(buff, 20, "%Y-%m-%d+%H:%M:%S", localtime(&dateTime));
+  strftime(buff, 20, "%Y-%m-%d+%H:%M:%S", gmtime(&dateTime));
   return buff;
 }
 
@@ -508,5 +508,5 @@ time_t TeleBoy::StringToTime(string timeString)
   tm->tm_min = m;
   tm->tm_sec = s;
 
-  return timegm(tm);
+  return mktime(tm);
 }
