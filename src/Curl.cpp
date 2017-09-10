@@ -13,21 +13,27 @@ Curl::~Curl()
 {
 }
 
-string Curl::GetSessionId() {
-  if (cookies.empty())
+string Curl::GetCookie(string name)
+{
+  if (cookies.find(name) == cookies.end())
   {
     return "";
   }
-  vector<string> parts = Utils::SplitString(cookies, '=');
-  string sessionId = parts[1];
-  return sessionId;
+  return cookies[name];
 }
 
-void Curl::AddHeader(std::string name, std::string value) {
+void Curl::AddHeader(std::string name, std::string value)
+{
   headers[name] = value;
 }
 
-void Curl::ResetHeaders() {
+void Curl::AddOption(std::string name, std::string value)
+{
+  options[name] = value;
+}
+
+void Curl::ResetHeaders()
+{
   headers.clear();
 }
 
@@ -50,15 +56,15 @@ string Curl::Post(string url, string postData, int &statusCode)
         base64.c_str());
   }
 
-  if (!cookies.empty())
-  {
-    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_PROTOCOL, "cookie",
-        cookies.c_str());
-  }
-
   for (auto const &entry : headers)
   {
     XBMC->CURLAddOption(file, XFILE::CURL_OPTION_HEADER, entry.first.c_str(),
+        entry.second.c_str());
+  }
+
+  for (auto const &entry : options)
+  {
+    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_OPTION, entry.first.c_str(),
         entry.second.c_str());
   }
 
@@ -71,19 +77,23 @@ string Curl::Post(string url, string postData, int &statusCode)
   char **cookiesPtr = XBMC->GetFilePropertyValues(file,
       XFILE::FILE_PROPERTY_RESPONSE_HEADER, "set-cookie", &numValues);
 
-  for (int i = 0; i < numValues; i++) {
+  for (int i = 0; i < numValues; i++)
+  {
     char *cookiePtr = cookiesPtr[i];
     if (cookiePtr && *cookiePtr)
     {
-      string temp = cookiePtr;
-      std::string::size_type paramPos = temp.find(';');
+      string cookie = cookiePtr;
+      std::string::size_type paramPos = cookie.find(';');
       if (paramPos != std::string::npos)
-        temp.resize(paramPos);
-      if (temp.find("cinergy_s") == 0)
+        cookie.resize(paramPos);
+      vector<string> parts = Utils::SplitString(cookie, '=');
+      if (parts.size() != 2)
       {
-        cookies = temp;
-        XBMC->Log(LOG_INFO, "Got cookie: %s.", cookies.c_str());
+        continue;
       }
+      cookies[parts[0]] = parts[1];
+      XBMC->Log(LOG_NOTICE, "Got cookie: %s=%s.", parts[0].c_str(),
+          parts[1].c_str());
     }
   }
   XBMC->FreeStringArray(cookiesPtr, numValues);

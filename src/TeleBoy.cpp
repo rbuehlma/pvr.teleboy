@@ -32,25 +32,30 @@ static const string apiKey =
 static const string apiDeviceType = "desktop";
 static const string apiVersion = "1.5";
 
-string TeleBoy::HttpGet(string url)
+string TeleBoy::HttpGet(Curl &curl, string url)
 {
-  return HttpPost(url, "");
+  return HttpPost(curl, url, "");
 }
 
-string TeleBoy::HttpPost(string url, string postData)
+string TeleBoy::HttpPost(Curl &curl, string url, string postData)
 {
   int statusCode;
   XBMC->Log(LOG_DEBUG, "Http-Request: %s.", url.c_str());
-  string content = curl->Post(url, postData, statusCode);
+  string content = curl.Post(url, postData, statusCode);
+  string cinergys = curl.GetCookie("cinergy_s");
+  if (!cinergys.empty())
+  {
+    cinergySCookies = cinergys;
+  }
   return content;
 }
 
-void TeleBoy::ApiSetHeader()
+void TeleBoy::ApiSetHeader(Curl &curl)
 {
-  curl->AddHeader("x-teleboy-apikey", apiKey);
-  curl->AddHeader("x-teleboy-device-type", apiDeviceType);
-  curl->AddHeader("x-teleboy-session", curl->GetSessionId());
-  curl->AddHeader("x-teleboy-version", apiVersion);
+  curl.AddHeader("x-teleboy-apikey", apiKey);
+  curl.AddHeader("x-teleboy-device-type", apiDeviceType);
+  curl.AddHeader("x-teleboy-session", cinergySCookies);
+  curl.AddHeader("x-teleboy-version", apiVersion);
 }
 
 bool TeleBoy::ApiGetResult(string content, Document &doc)
@@ -73,14 +78,14 @@ bool TeleBoy::ApiGet(string url, Document &doc)
 
 bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 {
-  std::lock_guard<std::mutex> guard(curlMutex);
-  ApiSetHeader();
+  Curl curl;
+  ApiSetHeader(curl);
   if (!postData.empty())
   {
-    curl->AddHeader("Content-Type", "application/json");
+    curl.AddHeader("Content-Type", "application/json");
   }
-  string content = HttpPost(apiUrl + url, postData);
-  curl->ResetHeaders();
+  string content = HttpPost(curl, apiUrl + url, postData);
+  curl.ResetHeaders();
   return ApiGetResult(content, doc);
 }
 
@@ -91,52 +96,53 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
 }
 
 TeleBoy::TeleBoy(bool favoritesOnly) :
-    username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7)
+    username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
+        "")
 {
-  updateThread = new UpdateThread(this);
-  curl = new Curl();
+  for (int i = 0; i < 5; ++i)
+  {
+    updateThreads.emplace_back(new UpdateThread(this));
+  }
   this->favoritesOnly = favoritesOnly;
 }
 
 TeleBoy::~TeleBoy()
 {
-  if (updateThread != nullptr)
+  for (auto const &updateThread : updateThreads)
   {
-    updateThread->StopThread(1000);
+    updateThread->StopThread(200);
     delete updateThread;
   }
-  delete curl;
 }
 
 bool TeleBoy::Login(string u, string p)
 {
-  std::lock_guard<std::mutex> guard(curlMutex);
-  HttpGet("https://www.teleboy.ch/login");
-  curl->AddHeader("Referer", "https://www.teleboy.ch/login");
-  curl->AddHeader("redirect-limit", "0");
-  string result = HttpPost(tbUrl + "/login_check",
+  Curl curl;
+  HttpGet(curl, "https://www.teleboy.ch/login");
+  curl.AddHeader("Referer", "https://www.teleboy.ch/login");
+  curl.AddHeader("redirect-limit", "0");
+  if (!cinergySCookies.empty())
+  {
+    curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
+  }
+  string result = HttpPost(curl, tbUrl + "/login_check",
       "login=" + Utils::UrlEncode(u) + "&password=" + Utils::UrlEncode(p)
           + "&keep_login=1");
-  curl->ResetHeaders();
-  curl->AddHeader("redirect-limit", "5");
-  curl->AddHeader("Referer", "https://www.teleboy.ch/login");
-  result = HttpGet("https://www.teleboy.ch/");
-  curl->ResetHeaders();
+  curl.ResetHeaders();
+  curl.AddHeader("redirect-limit", "5");
+  curl.AddHeader("Referer", "https://www.teleboy.ch/login");
+  if (!cinergySCookies.empty())
+  {
+    curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
+  }
+  result = HttpGet(curl, "https://www.teleboy.ch/");
+  curl.ResetHeaders();
   if (result.empty())
   {
     XBMC->Log(LOG_ERROR, "Failed to login.");
     return false;
   }
 
-  bool loginOk =
-      result.find("Anmeldung war nicht erfolgreich")
-      == std::string::npos
-      && result.find("Falsche Eingaben") == std::string::npos;
-  if (!loginOk)
-  {
-    XBMC->Log(LOG_ERROR, "Login data invalid.");
-    return false;
-  }
   unsigned int pos = result.find("setId(");
   if (pos == std::string::npos)
   {
@@ -146,7 +152,7 @@ bool TeleBoy::Login(string u, string p)
   pos += 6;
   int endPos = result.find(")", pos);
   userId = result.substr(pos, endPos - pos);
-  XBMC->Log(LOG_NOTICE, "Get userId: %s.", userId.c_str());
+  XBMC->Log(LOG_NOTICE, "Got userId: %s.", userId.c_str());
   return true;
 }
 
@@ -166,7 +172,7 @@ bool TeleBoy::LoadChannels()
   }
   Value& channels = json["data"]["items"];
   for (Value::ConstValueIterator itr1 = channels.Begin();
-          itr1 != channels.End(); ++itr1)
+      itr1 != channels.End(); ++itr1)
   {
     const Value &c = (*itr1);
     if (!c["has_stream"].GetBool())
@@ -188,7 +194,7 @@ bool TeleBoy::LoadChannels()
   }
   channels = json["data"]["items"];
   for (Value::ConstValueIterator itr1 = channels.Begin();
-          itr1 != channels.End(); ++itr1)
+      itr1 != channels.End(); ++itr1)
   {
     int cid = (*itr1).GetInt();
     if (channelsById.find(cid) != channelsById.end())
@@ -249,7 +255,9 @@ void TeleBoy::TransferChannel(ADDON_HANDLE handle, TeleBoyChannel channel,
 string TeleBoy::GetChannelStreamUrl(int uniqueId)
 {
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/live/" + to_string(uniqueId) + "?alternative=false", json))
+  if (!ApiGet(
+      "/users/" + userId + "/stream/live/" + to_string(uniqueId)
+          + "?alternative=false", json))
   {
     XBMC->Log(LOG_ERROR, "Error getting live stream url for channel %i.",
         uniqueId);
@@ -260,33 +268,34 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   return url;
 }
 
-void TeleBoy::GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
+void TeleBoy::GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart,
+    time_t iEnd)
 {
-  if (updateThread != NULL)
-  {
-    updateThread->LoadEpg(channel.iUniqueId, iStart, iEnd);
-  }
+  UpdateThread::LoadEpg(channel.iUniqueId, iStart, iEnd);
 }
- 
-void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t iEnd)
+
+void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
+    time_t iEnd)
 {
   int totals = -1;
   int sum = 0;
   while (totals == -1 || sum < totals)
   {
     Document json;
-    if (!ApiGet("/users/" + userId + "/broadcasts?begin=" + formatDateTime(iStart)
+    if (!ApiGet(
+        "/users/" + userId + "/broadcasts?begin=" + formatDateTime(iStart)
             + "&end=" + formatDateTime(iEnd) + "&expand=logos&limit=500&skip="
             + to_string(sum) + "&sort=station&station="
             + to_string(uniqueChannelId), json))
     {
-      XBMC->Log(LOG_ERROR, "Error getting epg for channel %i.", uniqueChannelId);
+      XBMC->Log(LOG_ERROR, "Error getting epg for channel %i.",
+          uniqueChannelId);
       return;
     }
     totals = json["data"]["total"].GetInt();
     const Value& items = json["data"]["items"];
-    for (Value::ConstValueIterator itr1 = items.Begin();
-            itr1 != items.End(); ++itr1)
+    for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
+        ++itr1)
     {
       const Value& item = (*itr1);
       sum++;
@@ -299,7 +308,9 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t i
       tag.endTime = StringToTime(item["end"].GetString());
       tag.strPlotOutline = nullptr; /* not supported */
       tag.strPlot = nullptr; /* not supported */
-      tag.strOriginalTitle = item.HasMember("original_title") ? strdup(item["original_title"].GetString()) : nullptr;
+      tag.strOriginalTitle =
+          item.HasMember("original_title") ?
+              strdup(item["original_title"].GetString()) : nullptr;
       tag.strCast = nullptr; /* not supported */
       tag.strDirector = nullptr; /*SA not supported */
       tag.strWriter = nullptr; /* not supported */
@@ -312,7 +323,9 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t i
       tag.iSeriesNumber = 0; /* not supported */
       tag.iEpisodeNumber = 0; /* not supported */
       tag.iEpisodePartNumber = 0; /* not supported */
-      tag.strEpisodeName = item.HasMember("subtitle") ? strdup(item["subtitle"].GetString()) : "";
+      tag.strEpisodeName =
+          item.HasMember("subtitle") ?
+              strdup(item["subtitle"].GetString()) : "";
       ; /* not supported */
       tag.iGenreType = EPG_GENRE_USE_STRING;
       tag.strGenreDescription = strdup(item["type"].GetString());
@@ -364,7 +377,8 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
   while (totals == -1 || sum < totals)
   {
     Document json;
-    if (!ApiGet("/users/" + userId + "/recordings/" + type
+    if (!ApiGet(
+        "/users/" + userId + "/recordings/" + type
             + "?desc=1&expand=flags,logos&limit=100&skip=0&sort=date", json))
     {
       XBMC->Log(LOG_ERROR, "Error getting recordings of type %s.",
@@ -373,8 +387,8 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
     }
     totals = json["data"]["total"].GetInt();
     const Value& items = json["data"]["items"];
-    for (Value::ConstValueIterator itr1 = items.Begin();
-            itr1 != items.End(); ++itr1)
+    for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
+        ++itr1)
     {
       const Value& item = (*itr1);
       sum++;
@@ -397,7 +411,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
         tag.iEpgUid = item["id"].GetInt();
         tag.iClientChannelUid = item["station_id"].GetInt();
         PVR->TransferTimerEntry(handle, &tag);
-        updateThread->SetNextRecordingUpdate(tag.endTime + 60 * 21);
+        UpdateThread::SetNextRecordingUpdate(tag.endTime + 60 * 21);
 
       }
       else
@@ -466,7 +480,8 @@ bool TeleBoy::IsRecordable(const EPG_TAG *tag)
 string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
 {
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/replay/"
+  if (!ApiGet(
+      "/users/" + userId + "/stream/replay/"
           + to_string(tag->iUniqueBroadcastId), json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");

@@ -59,17 +59,16 @@ private:
   map<int, TeleBoyChannel> channelsById;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
-  Curl *curl;
-  std::mutex curlMutex;
-  UpdateThread *updateThread;
+  vector<UpdateThread*> updateThreads;
+  string cinergySCookies;
 
   virtual string formatDateTime(time_t dateTime);
-  virtual string HttpGet(string url);
-  virtual void ApiSetHeader();
+  virtual string HttpGet(Curl &curl, string url);
+  virtual void ApiSetHeader(Curl &curl);
   virtual bool ApiGetResult(string content, Document &doc);
   virtual bool ApiGet(string url, Document &doc);
   virtual bool ApiPost(string url, string postData, Document &doc);
   virtual bool ApiDelete(string url, Document &doc);
-  virtual string HttpPost(string url, string postData);
+  virtual string HttpPost(Curl &curl, string url, string postData);
   time_t StringToTime(string timeString);
 };
