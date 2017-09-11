@@ -34,14 +34,37 @@ static const string apiVersion = "1.5";
 
 string TeleBoy::HttpGet(Curl &curl, string url)
 {
-  return HttpPost(curl, url, "");
+  return HttpRequest(curl, "GET", url, "");
+}
+
+string TeleBoy::HttpDelete(Curl &curl, string url)
+{
+  return HttpRequest(curl, "DELETE", url, "");
 }
 
 string TeleBoy::HttpPost(Curl &curl, string url, string postData)
 {
+  return HttpRequest(curl, "POST", url, postData);
+}
+
+string TeleBoy::HttpRequest(Curl &curl, string action, string url,
+    string postData)
+{
   int statusCode;
-  XBMC->Log(LOG_DEBUG, "Http-Request: %s.", url.c_str());
-  string content = curl.Post(url, postData, statusCode);
+  XBMC->Log(LOG_DEBUG, "Http-Request: %s %s.", action, url.c_str());
+  string content;
+  if (action.compare("POST") == 0)
+  {
+    content = curl.Post(url, postData, statusCode);
+  }
+  else if (action.compare("DELETE") == 0)
+  {
+    content = curl.Delete(url, statusCode);
+  }
+  else
+  {
+    content = curl.Get(url, statusCode);
+  }
   string cinergys = curl.GetCookie("cinergy_s");
   if (!cinergys.empty())
   {
@@ -73,7 +96,11 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
 
 bool TeleBoy::ApiGet(string url, Document &doc)
 {
-  return ApiPost(url, "", doc);
+  Curl curl;
+  ApiSetHeader(curl);
+  string content = HttpGet(curl, apiUrl + url);
+  curl.ResetHeaders();
+  return ApiGetResult(content, doc);
 }
 
 bool TeleBoy::ApiPost(string url, string postData, Document &doc)
@@ -91,8 +118,11 @@ bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 
 bool TeleBoy::ApiDelete(string url, Document &doc)
 {
-  //Not supported by kodi-curl
-  return false;
+  Curl curl;
+  ApiSetHeader(curl);
+  string content = HttpDelete(curl, apiUrl + url);
+  curl.ResetHeaders();
+  return ApiGetResult(content, doc);
 }
 
 TeleBoy::TeleBoy(bool favoritesOnly) :

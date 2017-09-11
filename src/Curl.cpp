@@ -37,7 +37,23 @@ void Curl::ResetHeaders()
   headers.clear();
 }
 
+string Curl::Delete(string url, int &statusCode)
+{
+  return Request("DELETE", url, "", statusCode);
+}
+
+string Curl::Get(string url, int &statusCode)
+{
+  return Request("GET", url, "", statusCode);
+}
+
 string Curl::Post(string url, string postData, int &statusCode)
+{
+  return Request("POST", url, postData, statusCode);
+}
+
+string Curl::Request(string action, string url, string postData,
+    int &statusCode)
 {
   void* file = XBMC->CURLCreate(url.c_str());
   if (!file)
@@ -45,6 +61,9 @@ string Curl::Post(string url, string postData, int &statusCode)
     statusCode = -1;
     return "";
   }
+
+  XBMC->CURLAddOption(file, XFILE::CURL_OPTION_PROTOCOL, "customrequest",
+      action.c_str());
 
   XBMC->CURLAddOption(file, XFILE::CURL_OPTION_HEADER, "acceptencoding",
       "gzip");
@@ -64,7 +83,7 @@ string Curl::Post(string url, string postData, int &statusCode)
 
   for (auto const &entry : options)
   {
-    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_OPTION, entry.first.c_str(),
+    XBMC->CURLAddOption(file, XFILE::CURL_OPTION_PROTOCOL, entry.first.c_str(),
         entry.second.c_str());
   }
 

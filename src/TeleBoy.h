@@ -41,7 +41,8 @@ public:
   virtual void TransferChannel(ADDON_HANDLE handle, TeleBoyChannel channel,
       int channelNum);
   virtual std::string GetChannelStreamUrl(int uniqueId);
-  virtual void GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart, time_t iEnd);
+  virtual void GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart,
+      time_t iEnd);
   void GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t iEnd);
   virtual void GetRecordings(ADDON_HANDLE handle, string type);
   virtual string GetRecordingStreamUrl(string recordingId);
@@ -64,11 +65,14 @@ private:
 
   virtual string formatDateTime(time_t dateTime);
   virtual string HttpGet(Curl &curl, string url);
+  virtual string HttpDelete(Curl &curl, string url);
   virtual void ApiSetHeader(Curl &curl);
   virtual bool ApiGetResult(string content, Document &doc);
   virtual bool ApiGet(string url, Document &doc);
   virtual bool ApiPost(string url, string postData, Document &doc);
   virtual bool ApiDelete(string url, Document &doc);
   virtual string HttpPost(Curl &curl, string url, string postData);
+  virtual string HttpRequest(Curl &curl, string action, string url,
+      string postData);
   time_t StringToTime(string timeString);
 };
