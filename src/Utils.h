@@ -13,5 +13,5 @@ public:
   static int StringToInt(const std::string &value);
   static std::string ReadFile(const std::string path);
   static std::vector<std::string> SplitString(const std::string &str,
-      const char &delim);
+      const char &delim, int maxParts = 0);
 };

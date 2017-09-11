@@ -86,7 +86,7 @@ string Curl::Post(string url, string postData, int &statusCode)
       std::string::size_type paramPos = cookie.find(';');
       if (paramPos != std::string::npos)
         cookie.resize(paramPos);
-      vector<string> parts = Utils::SplitString(cookie, '=');
+      vector<string> parts = Utils::SplitString(cookie, '=', 2);
       if (parts.size() != 2)
       {
         continue;

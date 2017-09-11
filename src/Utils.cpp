@@ -59,15 +59,20 @@ int Utils::StringToInt(const std::string &value)
 }
 
 std::vector<std::string> Utils::SplitString(const std::string &str,
-    const char &delim)
+    const char &delim, int maxParts)
 {
   typedef std::string::const_iterator iter;
   iter beg = str.begin();
-  std::vector<std::string> tokens;
+  std::vector < std::string > tokens;
 
   while (beg != str.end())
   {
-    //cout << ":" << beg._Myptr << ":" << endl;
+    if (maxParts == 1)
+    {
+      tokens.push_back(std::string(beg, str.end()));
+      break;
+    }
+    maxParts--;
     iter temp = find(beg, str.end(), delim);
     if (beg != str.end())
       tokens.push_back(std::string(beg, temp));
@@ -101,4 +106,3 @@ std::string Utils::ReadFile(const std::string path)
   return content;
 
 }
-
