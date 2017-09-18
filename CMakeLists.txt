@@ -3,15 +3,25 @@ project(pvr.teleboy)
 cmake_minimum_required(VERSION 2.8.12)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
+set(PC_RapidJSON_INCLUDEDIR ${PROJECT_SOURCE_DIR}/depends/target/rapidjson/native/build/dummy/include)
+
 enable_language(CXX)
+
+execute_process(
+      COMMAND make PREFIX=dummy
+      WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/depends/target/rapidjson/
+)
+
 
 find_package(Kodi REQUIRED)
 find_package(kodiplatform REQUIRED)
 find_package(p8-platform REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 include_directories(${kodiplatform_INCLUDE_DIRS}
                     ${p8-platform_INCLUDE_DIRS}
                     ${KODI_INCLUDE_DIR}
+                    ${RAPIDJSON_INCLUDE_DIRS}
 )
 
 set(DEPLIBS ${kodiplatform_LIBRARIES} 

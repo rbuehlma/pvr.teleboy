@@ -15,6 +15,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <stdio.h>
 #include <stdlib.h>
+#define timegm _mkgmtime
 #endif
 
 #ifdef TARGET_ANDROID
