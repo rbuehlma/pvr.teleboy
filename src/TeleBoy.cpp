@@ -15,6 +15,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <stdio.h>
 #include <stdlib.h>
+#define timegm _mkgmtime
 #endif
 
 #ifdef TARGET_ANDROID
@@ -129,7 +130,7 @@ TeleBoy::TeleBoy(bool favoritesOnly) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         "")
 {
-  for (int i = 0; i < 5; ++i)
+  for (int i = 0; i < 1; ++i)
   {
     updateThreads.emplace_back(new UpdateThread(this));
   }
