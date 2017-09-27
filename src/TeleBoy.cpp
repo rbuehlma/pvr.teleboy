@@ -16,6 +16,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define timegm _mkgmtime
+
+#define localtime_r __localtime_r
+static CC_INLINE struct tm *localtime_r(const time_t *clock, struct tm *result)
+{
+  struct tm *data;
+  if (!clock || !result)
+    return NULL;
+  data = localtime(clock);
+  if (!data)
+    return NULL;
+  memcpy(result, data, sizeof(*result));
+  return result;
+}
+
+#define gmtime_r __gmtime_r
+static CC_INLINE struct tm *gmtime_r(const time_t *clock, struct tm *result)
+{
+  struct tm *data;
+  if (!clock || !result)
+    return NULL;
+  data = gmtime(clock);
+  if (!data)
+    return NULL;
+  memcpy(result, data, sizeof(*result));
+  return result;
+}
+
 #endif
 
 #ifdef TARGET_ANDROID
@@ -130,7 +157,7 @@ TeleBoy::TeleBoy(bool favoritesOnly) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         "")
 {
-  for (int i = 0; i < 1; ++i)
+  for (int i = 0; i < 5; ++i)
   {
     updateThreads.emplace_back(new UpdateThread(this));
   }
@@ -373,7 +400,9 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 string TeleBoy::formatDateTime(time_t dateTime)
 {
   char buff[20];
-  strftime(buff, 20, "%Y-%m-%d+%H:%M:%S", gmtime(&dateTime));
+  struct tm tm;
+  gmtime_r(&dateTime, &tm);
+  strftime(buff, 20, "%Y-%m-%d+%H:%M:%S", &tm);
   return buff;
 }
 
@@ -524,20 +553,21 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
 
 time_t TeleBoy::StringToTime(string timeString)
 {
-  struct tm *tm;
+  struct tm tm;
   time_t current_time;
   time(&current_time);
-  tm = localtime(&current_time);
+  localtime_r(&current_time, &tm);
 
   int year, month, day, h, m, s;
   sscanf(timeString.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &h, &m,
       &s);
-  tm->tm_year = year - 1900;
-  tm->tm_mon = month - 1;
-  tm->tm_mday = day;
-  tm->tm_hour = h;
-  tm->tm_min = m;
-  tm->tm_sec = s;
+  tm.tm_year = year - 1900;
+  tm.tm_mon = month - 1;
+  tm.tm_mday = day;
+  tm.tm_hour = h;
+  tm.tm_min = m;
+  tm.tm_sec = s;
 
-  return mktime(tm);
+  time_t ret = mktime(&tm);
+  return ret;
 }

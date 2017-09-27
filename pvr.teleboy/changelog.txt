@@ -1,3 +1,5 @@
+v18.0.5
+ - Make loading EPG multithreaded
 v18.0.4
  - Add debian folder
 v18.0.3
