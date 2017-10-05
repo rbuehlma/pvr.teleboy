@@ -204,6 +204,7 @@ bool TeleBoy::Login(string u, string p)
   unsigned int pos = result.find("setId(");
   if (pos == std::string::npos)
   {
+    XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
     XBMC->Log(LOG_ERROR, "No user settings found.");
     return false;
   }

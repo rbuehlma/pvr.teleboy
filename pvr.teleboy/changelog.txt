@@ -1,3 +1,5 @@
+v18.0.6
+ - Output HTML body in case login fails
 v18.0.5
  - Make loading EPG multithreaded
 v18.0.4
