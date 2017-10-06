@@ -22,10 +22,10 @@ static inline struct tm *localtime_r(const time_t *clock, struct tm *result)
 {
   struct tm *data;
   if (!clock || !result)
-    return NULL;
+  return NULL;
   data = localtime(clock);
   if (!data)
-    return NULL;
+  return NULL;
   memcpy(result, data, sizeof(*result));
   return result;
 }
@@ -35,10 +35,10 @@ static inline struct tm *gmtime_r(const time_t *clock, struct tm *result)
 {
   struct tm *data;
   if (!clock || !result)
-    return NULL;
+  return NULL;
   data = gmtime(clock);
   if (!data)
-    return NULL;
+  return NULL;
   memcpy(result, data, sizeof(*result));
   return result;
 }
@@ -155,7 +155,7 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
 
 TeleBoy::TeleBoy(bool favoritesOnly) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
-        "")
+        ""), isPlusMember(false), isComfortMember(false)
 {
   for (int i = 0; i < 5; ++i)
   {
@@ -191,7 +191,7 @@ bool TeleBoy::Login(string u, string p)
   curl.AddHeader("Referer", "https://www.teleboy.ch/login");
   if (!cinergySCookies.empty())
   {
-    curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
+    curl.AddOption("cookie", "welcomead=1; cinergy_s=" + cinergySCookies);
   }
   result = HttpGet(curl, "https://www.teleboy.ch/");
   curl.ResetHeaders();
@@ -201,7 +201,7 @@ bool TeleBoy::Login(string u, string p)
     return false;
   }
 
-  unsigned int pos = result.find("setId(");
+  size_t pos = result.find("setId(");
   if (pos == std::string::npos)
   {
     XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
@@ -209,8 +209,17 @@ bool TeleBoy::Login(string u, string p)
     return false;
   }
   pos += 6;
-  int endPos = result.find(")", pos);
+  size_t endPos = result.find(")", pos);
+  if (endPos - pos > 15 || endPos <= pos)
+  {
+    XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
+    XBMC->Log(LOG_ERROR, "Received userId is invalid.");
+    return false;
+  }
   userId = result.substr(pos, endPos - pos);
+  isPlusMember = result.find("setIsPlusMember(1", endPos) != std::string::npos;
+  isComfortMember = result.find("setIsComfortMember(1", endPos)
+      != std::string::npos;
   XBMC->Log(LOG_NOTICE, "Got userId: %s.", userId.c_str());
   return true;
 }
@@ -525,6 +534,10 @@ string TeleBoy::GetRecordingStreamUrl(string recordingId)
 
 bool TeleBoy::IsPlayable(const EPG_TAG *tag)
 {
+  if (!isComfortMember && !isPlusMember)
+  {
+    return false;
+  }
   time_t current_time;
   time(&current_time);
   return ((current_time - tag->endTime) < maxRecallSeconds)

@@ -62,6 +62,8 @@ private:
   int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;
   string cinergySCookies;
+  bool isPlusMember;
+  bool isComfortMember;
 
   virtual string formatDateTime(time_t dateTime);
   virtual string HttpGet(Curl &curl, string url);
