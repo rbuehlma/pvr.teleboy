@@ -2,6 +2,9 @@
 #include "TeleBoy.h"
 #include "kodi/xbmc_pvr_dll.h"
 #include "kodi/libKODI_guilib.h"
+#include <chrono>
+#include <thread>
+
 
 using namespace ADDON;
 
@@ -30,6 +33,7 @@ CHelper_libXBMC_pvr *PVR = NULL;
 std::string teleboyUsername = "";
 std::string teleboyPassword = "";
 bool teleboyFavoritesOnly = false;
+int runningRequests = 0;
 
 extern "C"
 {
@@ -118,7 +122,21 @@ ADDON_STATUS ADDON_GetStatus()
 
 void ADDON_Destroy()
 {
-  SAFE_DELETE(teleboy);
+  TeleBoy *oldTeleboy = teleboy;
+  teleboy = nullptr;
+  
+  int waitCount = 10;
+  while (runningRequests > 0 && waitCount > 0)
+  {
+    XBMC->Log(LOG_NOTICE, "Wait for %d requests to finish for %d seconds.", runningRequests, waitCount);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    waitCount--;
+  }
+
+  SAFE_DELETE(oldTeleboy);
+  SAFE_DELETE(PVR);
+  SAFE_DELETE(XBMC);
+
   m_CurStatus = ADDON_STATUS_UNKNOWN;
 }
 
@@ -194,11 +212,12 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
   pCapabilities->bSupportsRecordingsLifetimeChange = false;
   pCapabilities->bSupportsDescrambleInfo = false;
 
+  runningRequests++;
   if (teleboy)
   {
     teleboy->GetAddonCapabilities(pCapabilities);
   }
-
+  runningRequests--;
   return PVR_ERROR_NO_ERROR;
 }
 
@@ -228,21 +247,28 @@ const char *GetBackendHostname(void)
 PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel,
     time_t iStart, time_t iEnd)
 {
+  runningRequests++;
+  PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
   if (teleboy)
   {
     teleboy->GetEPGForChannel(channel, iStart, iEnd);
-    return PVR_ERROR_NO_ERROR;
+    ret = PVR_ERROR_NO_ERROR;
   }
+  runningRequests--;
 
-  return PVR_ERROR_SERVER_ERROR;
+  return ret;
 }
 
 int GetChannelsAmount(void)
 {
+  int ret = 0;
+  runningRequests++;
   if (teleboy)
-    return teleboy->GetChannelsAmount();
+    ret = teleboy->GetChannelsAmount();
+  
+  runningRequests--;
 
-  return 0;
+  return ret;
 }
 
 PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
@@ -250,10 +276,14 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
   if (bRadio)
     return PVR_ERROR_NO_ERROR;
 
+  PVR_ERROR ret = PVR_ERROR_NO_ERROR;
+  runningRequests++;
   if (teleboy)
-    return teleboy->GetChannels(handle, bRadio);
+    ret = teleboy->GetChannels(handle, bRadio);
+  
+  runningRequests--;
 
-  return PVR_ERROR_NO_ERROR;
+  return ret;
 }
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
@@ -318,25 +348,31 @@ void setStreamProperties(PVR_NAMED_VALUE* properties,
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel,
     PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)
 {
+  PVR_ERROR ret = PVR_ERROR_FAILED;
+  runningRequests++;
   std::string strUrl = teleboy->GetChannelStreamUrl(channel->iUniqueId);
-  if (strUrl.empty())
+  if (!strUrl.empty())
   {
-    return PVR_ERROR_FAILED;
+    setStreamProperties(properties, propertiesCount, strUrl);
+    ret = PVR_ERROR_NO_ERROR;
   }
-  setStreamProperties(properties, propertiesCount, strUrl);
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording,
     PVR_NAMED_VALUE* properties, unsigned int* propertiesCount)
 {
+  PVR_ERROR ret = PVR_ERROR_FAILED;
+  runningRequests++;
   std::string strUrl = teleboy->GetRecordingStreamUrl(recording->strRecordingId);
-  if (strUrl.empty())
+  if (!strUrl.empty())
   {
-    return PVR_ERROR_FAILED;
+    setStreamProperties(properties, propertiesCount, strUrl);
+    ret = PVR_ERROR_NO_ERROR;
   }
-  setStreamProperties(properties, propertiesCount, strUrl);
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 /** Recording API **/
@@ -351,12 +387,15 @@ PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
   {
     return PVR_ERROR_NO_ERROR;
   }
-  if (!teleboy)
+  PVR_ERROR ret = PVR_ERROR_SERVER_ERROR; 
+  runningRequests++;
+  if (teleboy)
   {
-    return PVR_ERROR_SERVER_ERROR;
+    teleboy->GetRecordings(handle, "ready");
+    ret = PVR_ERROR_NO_ERROR;
   }
-  teleboy->GetRecordings(handle, "ready");
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 int GetTimersAmount(void)
@@ -366,59 +405,71 @@ int GetTimersAmount(void)
 
 PVR_ERROR GetTimers(ADDON_HANDLE handle)
 {
-  if (!teleboy)
+  PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
+  runningRequests++;
+  if (teleboy)
   {
-    return PVR_ERROR_SERVER_ERROR;
+    teleboy->GetRecordings(handle, "planned");
+    ret = PVR_ERROR_NO_ERROR;
   }
-  teleboy->GetRecordings(handle, "planned");
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR AddTimer(const PVR_TIMER &timer)
 {
-  if (!teleboy)
-  {
-    return PVR_ERROR_SERVER_ERROR;
-  }
   if (timer.iEpgUid <= EPG_TAG_INVALID_UID)
   {
     return PVR_ERROR_REJECTED;
   }
-  if (!teleboy->Record(timer.iEpgUid))
+  runningRequests++;
+  PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
+  if (teleboy)
   {
-    return PVR_ERROR_REJECTED;
+    ret = PVR_ERROR_REJECTED;
+    if (teleboy->Record(timer.iEpgUid))
+    {
+      PVR->TriggerTimerUpdate();
+      PVR->TriggerRecordingUpdate();
+      ret = PVR_ERROR_NO_ERROR;
+    }
   }
-  PVR->TriggerTimerUpdate();
-  PVR->TriggerRecordingUpdate();
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR DeleteRecording(const PVR_RECORDING &recording)
 {
-  if (!teleboy)
+  PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
+  runningRequests++;
+  if (teleboy)
   {
-    return PVR_ERROR_SERVER_ERROR;
+    ret = PVR_ERROR_REJECTED;
+    if (teleboy->DeleteRecording(recording.strRecordingId))
+    {
+      ret = PVR_ERROR_NO_ERROR;
+    }
   }
-  if (!teleboy->DeleteRecording(recording.strRecordingId))
-  {
-    return PVR_ERROR_REJECTED;
-  }
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR DeleteTimer(const PVR_TIMER &timer, bool bForceDelete)
 {
-  if (!teleboy)
+  PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
+  runningRequests++;
+  if (teleboy)
   {
-    return PVR_ERROR_SERVER_ERROR;
+    ret = PVR_ERROR_REJECTED;
+    if (teleboy->DeleteRecording(to_string(timer.iClientIndex)))
+    {
+      PVR->TriggerTimerUpdate();
+      PVR->TriggerRecordingUpdate();
+      ret = PVR_ERROR_NO_ERROR;
+    }
   }
-  if (!teleboy->DeleteRecording(to_string(timer.iClientIndex)))
-  {
-    return PVR_ERROR_REJECTED;
-  }
-  PVR->TriggerTimerUpdate();
-  PVR->TriggerRecordingUpdate();
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 void addTimerType(PVR_TIMER_TYPE types[], int idx, int attributes)
@@ -442,53 +493,54 @@ PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
 
 PVR_ERROR IsEPGTagRecordable(const EPG_TAG* tag, bool* bIsRecordable)
 {
-  if (!teleboy)
+  PVR_ERROR ret = PVR_ERROR_FAILED;
+  runningRequests++;
+  if (teleboy)
   {
-    return PVR_ERROR_FAILED;
+    *bIsRecordable = teleboy->IsRecordable(tag);
+    ret = PVR_ERROR_NO_ERROR;
   }
-  *bIsRecordable = teleboy->IsRecordable(tag);
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR IsEPGTagPlayable(const EPG_TAG* tag, bool* bIsPlayable)
 {
-  if (!teleboy)
+  PVR_ERROR ret = PVR_ERROR_FAILED;
+  runningRequests++;
+  if (teleboy)
   {
-    return PVR_ERROR_FAILED;
+    *bIsPlayable = teleboy->IsPlayable(tag);
+    ret = PVR_ERROR_NO_ERROR;
   }
-  *bIsPlayable = teleboy->IsPlayable(tag);
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG* tag,
     PVR_NAMED_VALUE* properties, unsigned int* iPropertiesCount)
 {
+  PVR_ERROR ret = PVR_ERROR_FAILED;
+  runningRequests++;
   std::string strUrl = teleboy->GetEpgTagUrl(tag);
-  if (strUrl.empty())
+  if (!strUrl.empty())
   {
-    return PVR_ERROR_FAILED;
+    setStreamProperties(properties, iPropertiesCount, strUrl);
+    ret = PVR_ERROR_NO_ERROR;
   }
-  setStreamProperties(properties, iPropertiesCount, strUrl);
-  return PVR_ERROR_NO_ERROR;
+  runningRequests--;
+  return ret;
 }
 
 PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count)
 {
-  if (!teleboy)
-  {
-    return PVR_ERROR_FAILED;
-  }
-  return PVR_ERROR_NO_ERROR;
+  return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 PVR_ERROR SetRecordingLastPlayedPosition(const PVR_RECORDING &recording,
     int lastplayedposition)
 {
-  if (!teleboy)
-  {
-    return PVR_ERROR_FAILED;
-  }
-  return PVR_ERROR_NO_ERROR;
+  return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording)
