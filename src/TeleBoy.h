@@ -76,5 +76,4 @@ private:
   virtual string HttpPost(Curl &curl, string url, string postData);
   virtual string HttpRequest(Curl &curl, string action, string url,
       string postData);
-  time_t StringToTime(string timeString);
 };

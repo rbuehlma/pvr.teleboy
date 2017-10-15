@@ -11,40 +11,6 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
-#pragma comment(lib, "ws2_32.lib")
-#include <stdio.h>
-#include <stdlib.h>
-#define timegm _mkgmtime
-
-#define localtime_r __localtime_r
-static inline struct tm *localtime_r(const time_t *clock, struct tm *result)
-{
-  struct tm *data;
-  if (!clock || !result)
-  return NULL;
-  data = localtime(clock);
-  if (!data)
-  return NULL;
-  memcpy(result, data, sizeof(*result));
-  return result;
-}
-
-#define gmtime_r __gmtime_r
-static inline struct tm *gmtime_r(const time_t *clock, struct tm *result)
-{
-  struct tm *data;
-  if (!clock || !result)
-  return NULL;
-  data = gmtime(clock);
-  if (!data)
-  return NULL;
-  memcpy(result, data, sizeof(*result));
-  return result;
-}
-
-#endif
-
 #ifdef TARGET_ANDROID
 #include "to_string.h"
 #endif
@@ -372,8 +338,8 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iUniqueBroadcastId = item["id"].GetInt();
       tag.strTitle = strdup(item["title"].GetString());
       tag.iUniqueChannelId = uniqueChannelId;
-      tag.startTime = StringToTime(item["begin"].GetString());
-      tag.endTime = StringToTime(item["end"].GetString());
+      tag.startTime = Utils::StringToTime(item["begin"].GetString());
+      tag.endTime = Utils::StringToTime(item["end"].GetString());
       tag.strPlotOutline = nullptr; /* not supported */
       tag.strPlot = nullptr; /* not supported */
       tag.strOriginalTitle =
@@ -474,8 +440,8 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
         {
           PVR_STRCPY(tag.strSummary, item["subtitle"].GetString());
         }
-        tag.startTime = StringToTime(item["begin"].GetString());
-        tag.endTime = StringToTime(item["end"].GetString());
+        tag.startTime = Utils::StringToTime(item["begin"].GetString());
+        tag.endTime = Utils::StringToTime(item["end"].GetString());
         tag.state = PVR_TIMER_STATE_SCHEDULED;
         tag.iTimerType = 1;
         tag.iEpgUid = item["id"].GetInt();
@@ -508,8 +474,8 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
             channelsById[tag.iChannelUid].logoPath.c_str());
         PVR_STRCPY(tag.strChannelName,
             channelsById[tag.iChannelUid].name.c_str());
-        tag.recordingTime = StringToTime(item["begin"].GetString());
-        time_t endTime = StringToTime(item["end"].GetString());
+        tag.recordingTime = Utils::StringToTime(item["begin"].GetString());
+        time_t endTime = Utils::StringToTime(item["end"].GetString());
         tag.iDuration = endTime - tag.recordingTime;
         tag.iEpgEventId = item["id"].GetInt();
 
@@ -563,25 +529,4 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
   }
   string url = json["data"]["stream"]["url"].GetString();
   return url;
-}
-
-time_t TeleBoy::StringToTime(string timeString)
-{
-  struct tm tm;
-  time_t current_time;
-  time(&current_time);
-  localtime_r(&current_time, &tm);
-
-  int year, month, day, h, m, s;
-  sscanf(timeString.c_str(), "%d-%d-%dT%d:%d:%dZ", &year, &month, &day, &h, &m,
-      &s);
-  tm.tm_year = year - 1900;
-  tm.tm_mon = month - 1;
-  tm.tm_mday = day;
-  tm.tm_hour = h;
-  tm.tm_min = m;
-  tm.tm_sec = s;
-
-  time_t ret = mktime(&tm);
-  return ret;
 }
