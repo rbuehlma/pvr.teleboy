@@ -1,3 +1,5 @@
+v18.0.9
+ - Allow switching to t.teleboy.ch
 v18.0.8
  - Fix time zone handling
  - Fix race conditions while closing the addon

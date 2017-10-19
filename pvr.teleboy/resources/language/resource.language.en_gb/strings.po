@@ -24,6 +24,10 @@ msgctxt "#37103"
 msgid "Favourite channels only"
 msgstr "Load only channels which are in the favourite list"
 
+msgctxt "#37104"
+msgid "Use t.teleboy.ch"
+msgstr "Use t.teleboy.ch instead of www.teleboy.ch"
+
 msgctxt "#37111"
 msgid "Login failed!"
 msgstr ""

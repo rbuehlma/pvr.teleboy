@@ -19,7 +19,6 @@ using namespace ADDON;
 using namespace std;
 using namespace rapidjson;
 
-static const string tbUrl = "https://www.teleboy.ch";
 static const string apiUrl = "http://tv.api.teleboy.ch";
 static const string apiKey =
     "69d4547562510efe1b5d354bc34656fb34366b6c1023739ce46958007bf17ee9";
@@ -139,11 +138,12 @@ TeleBoy::~TeleBoy()
   }
 }
 
-bool TeleBoy::Login(string u, string p)
+bool TeleBoy::Login(string u, string p, bool test)
 {
+  string tbUrl = test ? "https://t.teleboy.ch" : "https://www.teleboy.ch";
   Curl curl;
-  HttpGet(curl, "https://www.teleboy.ch/login");
-  curl.AddHeader("Referer", "https://www.teleboy.ch/login");
+  HttpGet(curl, tbUrl + "/login");
+  curl.AddHeader("Referer", tbUrl + "/login");
   curl.AddHeader("redirect-limit", "0");
   if (!cinergySCookies.empty())
   {
@@ -154,12 +154,12 @@ bool TeleBoy::Login(string u, string p)
           + "&keep_login=1");
   curl.ResetHeaders();
   curl.AddHeader("redirect-limit", "5");
-  curl.AddHeader("Referer", "https://www.teleboy.ch/login");
+  curl.AddHeader("Referer", tbUrl + "/login");
   if (!cinergySCookies.empty())
   {
     curl.AddOption("cookie", "welcomead=1; cinergy_s=" + cinergySCookies);
   }
-  result = HttpGet(curl, "https://www.teleboy.ch/");
+  result = HttpGet(curl, tbUrl);
   curl.ResetHeaders();
   if (result.empty())
   {
@@ -170,7 +170,6 @@ bool TeleBoy::Login(string u, string p)
   size_t pos = result.find("setId(");
   if (pos == std::string::npos)
   {
-    XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
     XBMC->Log(LOG_ERROR, "No user settings found.");
     return false;
   }
