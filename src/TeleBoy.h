@@ -33,7 +33,7 @@ class TeleBoy
 public:
   TeleBoy(bool favoritesOnly);
   virtual ~TeleBoy();
-  virtual bool Login(string u, string p, bool test);
+  virtual bool Login(string u, string p);
   virtual bool LoadChannels();
   virtual void GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities);
   virtual int GetChannelsAmount(void);

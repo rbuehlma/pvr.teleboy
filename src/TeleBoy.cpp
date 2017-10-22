@@ -138,13 +138,19 @@ TeleBoy::~TeleBoy()
   }
 }
 
-bool TeleBoy::Login(string u, string p, bool test)
+bool TeleBoy::Login(string u, string p)
 {
-  string tbUrl = test ? "https://t.teleboy.ch" : "https://www.teleboy.ch";
+  string tbUrl = "https://www.teleboy.ch";
   Curl curl;
-  HttpGet(curl, tbUrl + "/login");
-  curl.AddHeader("Referer", tbUrl + "/login");
   curl.AddHeader("redirect-limit", "0");
+  HttpGet(curl, tbUrl + "/login");
+  string location = curl.GetLocation();
+  if (location.find("t.teleboy.ch") != string::npos)
+  {
+    tbUrl = "https://t.teleboy.ch";
+    HttpGet(curl, tbUrl + "/login");
+  }
+  curl.AddHeader("Referer", tbUrl + "/login");
   if (!cinergySCookies.empty())
   {
     curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);

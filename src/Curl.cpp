@@ -116,6 +116,13 @@ string Curl::Request(string action, string url, string postData,
     }
   }
   XBMC->FreeStringArray(cookiesPtr, numValues);
+  
+  char *tmp = XBMC->GetFilePropertyValue(file,
+      XFILE::FILE_PROPERTY_RESPONSE_HEADER, "Location");
+  location = tmp != nullptr ? tmp : "";
+  
+  XBMC->FreeString(tmp);
+
 
   // read the file
   static const unsigned int CHUNKSIZE = 16384;

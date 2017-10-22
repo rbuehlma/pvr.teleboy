@@ -1,3 +1,5 @@
+v18.0.10
+ - Automatically switch to t.teleboy.ch if redirected
 v18.0.9
  - Allow switching to t.teleboy.ch
 v18.0.8

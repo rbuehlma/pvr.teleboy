@@ -32,7 +32,6 @@ CHelper_libXBMC_pvr *PVR = NULL;
 
 std::string teleboyUsername = "";
 std::string teleboyPassword = "";
-bool teleboyTest = false;
 bool teleboyFavoritesOnly = false;
 int runningRequests = 0;
 
@@ -55,10 +54,6 @@ void ADDON_ReadSettings(void)
   if (XBMC->GetSetting("favoritesonly", &boolBuffer))
   {
     teleboyFavoritesOnly = boolBuffer;
-  }
-  if (XBMC->GetSetting("teleboytest", &boolBuffer))
-  {
-    teleboyTest = boolBuffer;
   }
   XBMC->Log(LOG_DEBUG, "End Readsettings");
 }
@@ -106,7 +101,7 @@ ADDON_STATUS ADDON_Create(void *hdl, void *props)
     XBMC->Log(LOG_DEBUG, "Teleboy created");
     if (!teleboyUsername.empty() && !teleboyPassword.empty()) {
       XBMC->Log(LOG_DEBUG, "Login Teleboy");
-      if (teleboy->Login(teleboyUsername, teleboyPassword, teleboyTest)) {
+      if (teleboy->Login(teleboyUsername, teleboyPassword)) {
         XBMC->Log(LOG_DEBUG, "Login done");
         teleboy->LoadChannels();
         m_CurStatus = ADDON_STATUS_OK;
@@ -179,15 +174,6 @@ ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
     }
   }
   
-  if (name == "teleboytest")
-  {
-    bool test = *(bool *) settingValue;
-    if (test != teleboyTest)
-    {
-      teleboyTest = test;
-      return ADDON_STATUS_NEED_RESTART;
-    }
-  }
   return ADDON_STATUS_OK;
 }
 
