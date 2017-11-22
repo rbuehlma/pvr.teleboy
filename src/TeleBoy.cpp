@@ -303,8 +303,30 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
     return "";
   }
   string url = json["data"]["stream"]["url"].GetString();
-  XBMC->Log(LOG_ERROR, "Play URL: %s.", url.c_str());
+  XBMC->Log(LOG_NOTICE, "Play URL: %s.", url.c_str());
+  url = FollowRedirect(url);
   return url;
+}
+
+string TeleBoy::FollowRedirect(string url)
+{
+  Curl curl;
+  curl.AddHeader("redirect-limit", "0");
+  string currUrl = url;
+  for (int i = 0; i < 5; i++)
+  {
+    int statusCode;
+    curl.Get(currUrl, statusCode);
+    string nextUrl = curl.GetLocation();
+    if (nextUrl.empty())
+    {
+      XBMC->Log(LOG_NOTICE, "Final url : %s.", currUrl.c_str());
+      return currUrl;
+    }
+    XBMC->Log(LOG_NOTICE, "Redirected to : %s.", nextUrl.c_str());
+    currUrl = nextUrl;
+  }
+  return currUrl;
 }
 
 void TeleBoy::GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart,
@@ -500,6 +522,7 @@ string TeleBoy::GetRecordingStreamUrl(string recordingId)
     return "";
   }
   string url = json["data"]["stream"]["url"].GetString();
+  url = FollowRedirect(url);
   return url;
 }
 
@@ -533,5 +556,6 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
     return "";
   }
   string url = json["data"]["stream"]["url"].GetString();
+  url = FollowRedirect(url);
   return url;
 }
