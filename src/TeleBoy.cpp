@@ -375,7 +375,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.strCast = nullptr; /* not supported */
       tag.strDirector = nullptr; /*SA not supported */
       tag.strWriter = nullptr; /* not supported */
-      tag.iYear = item["year"].GetInt();
+      tag.iYear = item.HasMember("year") ? item["year"].GetInt() : 0;
       tag.strIMDBNumber = nullptr; /* not supported */
       tag.strIconPath = nullptr; /* not supported */
       tag.iParentalRating = 0; /* not supported */
