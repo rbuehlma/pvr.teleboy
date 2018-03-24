@@ -147,6 +147,7 @@ bool TeleBoy::Login(string u, string p)
   string location = curl.GetLocation();
   if (location.find("t.teleboy.ch") != string::npos)
   {
+    XBMC->Log(LOG_NOTICE, "Using t.teleboy.ch.");
     tbUrl = "https://t.teleboy.ch";
     HttpGet(curl, tbUrl + "/login");
   }
