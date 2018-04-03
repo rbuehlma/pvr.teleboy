@@ -530,6 +530,11 @@ PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG* tag,
   return ret;
 }
 
+PVR_ERROR GetEPGTagEdl(const EPG_TAG* epgTag, PVR_EDL_ENTRY edl[], int *size)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
 PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
