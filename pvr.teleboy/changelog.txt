@@ -1,3 +1,5 @@
+v18.0.15
+ - Update to PVR API 5.9.0
 v18.0.14
  - Log notice if t.teleboy.ch is used
 v18.0.13
