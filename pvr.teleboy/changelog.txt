@@ -1,3 +1,5 @@
+v18.0.16
+ - Seek 5 minutes into replay and recording stream
 v18.0.15
  - Update to PVR API 5.9.0
 v18.0.14
