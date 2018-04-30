@@ -368,8 +368,12 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iUniqueChannelId = uniqueChannelId;
       tag.startTime = Utils::StringToTime(item["begin"].GetString());
       tag.endTime = Utils::StringToTime(item["end"].GetString());
-      tag.strPlotOutline = nullptr; /* not supported */
-      tag.strPlot = nullptr; /* not supported */
+      tag.strPlotOutline =
+          item.HasMember("headline") ?
+              strdup(item["headline"].GetString()) : nullptr;
+      tag.strPlot =
+          item.HasMember("short_description") ?
+              strdup(item["short_description"].GetString()) : nullptr;
       tag.strOriginalTitle =
           item.HasMember("original_title") ?
               strdup(item["original_title"].GetString()) : nullptr;
