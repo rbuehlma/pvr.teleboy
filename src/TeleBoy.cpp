@@ -386,8 +386,10 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iParentalRating = 0; /* not supported */
       tag.iStarRating = 0; /* not supported */
       tag.bNotify = false; /* not supported */
-      tag.iSeriesNumber = 0; /* not supported */
-      tag.iEpisodeNumber = 0; /* not supported */
+      tag.iSeriesNumber =
+          item.HasMember("serie_season") ? item["serie_season"].GetInt() : 0;
+      tag.iEpisodeNumber =
+          item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : 0;
       tag.iEpisodePartNumber = 0; /* not supported */
       tag.strEpisodeName =
           item.HasMember("subtitle") ?
