@@ -30,6 +30,15 @@ set(TELEBOY_SOURCES
 		src/UpdateThread.cpp
 )
 
+set(TELEBOY_HEADERS
+		src/Curl.h
+		src/UpdateThread.h
+		src/client.h
+		src/TeleBoy.h
+		src/to_string.h
+		src/Utils.h
+)
+
 if(WIN32)
 	list(APPEND DEPLIBS ws2_32)
 endif()
