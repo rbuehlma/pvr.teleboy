@@ -1,3 +1,5 @@
+v18.0.18
+ - Update to PVR API v5.10.0
 v18.0.17
  - Add additional EPG fields (thanks to martinwilli)
 v18.0.16
