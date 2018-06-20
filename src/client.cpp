@@ -331,8 +331,8 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle,
 
 void setStreamProperty(PVR_NAMED_VALUE* properties, unsigned int* propertiesCount, std::string name, std::string value)
 {
-  strncpy(properties[*propertiesCount].strName, name.c_str(), sizeof(properties[*propertiesCount].strName));
-  strncpy(properties[*propertiesCount].strValue, value.c_str(), sizeof(properties[*propertiesCount].strValue));  
+  strncpy(properties[*propertiesCount].strName, name.c_str(), sizeof(properties[*propertiesCount].strName) - 1);
+  strncpy(properties[*propertiesCount].strValue, value.c_str(), sizeof(properties[*propertiesCount].strValue) - 1);
   *propertiesCount = (*propertiesCount) + 1;
 }
 
@@ -341,7 +341,7 @@ void setStreamProperties(PVR_NAMED_VALUE* properties, unsigned int* propertiesCo
   setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_STREAMURL, url);
   setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_INPUTSTREAMADDON, "inputstream.adaptive");
   setStreamProperty(properties, propertiesCount, "inputstream.adaptive.manifest_type", "hls");
-  setStreamProperty(properties, propertiesCount, "mimetype", "application/x-mpegURL");
+  setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_MIMETYPE, "application/x-mpegURL");
 }
 
 PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel,
@@ -354,6 +354,7 @@ PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel,
   {
     *propertiesCount = 0;
     setStreamProperties(properties, propertiesCount, strUrl);
+    setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_ISREALTIMESTREAM, "true");
     ret = PVR_ERROR_NO_ERROR;
   }
   runningRequests--;
