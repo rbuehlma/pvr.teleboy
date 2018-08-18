@@ -1,3 +1,5 @@
+v18.0.20
+ - Add missing mutex unlock
 v18.0.19
  - Update to PVR API v5.10.1
 v18.0.18
