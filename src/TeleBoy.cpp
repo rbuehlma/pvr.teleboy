@@ -192,7 +192,7 @@ bool TeleBoy::Login(string u, string p)
   isPlusMember = result.find("setIsPlusMember(1", endPos) != std::string::npos;
   isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;
-  XBMC->Log(LOG_NOTICE, "Got userId: %s.", userId.c_str());
+  XBMC->Log(LOG_DEBUG, "Got userId: %s.", userId.c_str());
   return true;
 }
 
@@ -304,7 +304,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
     return "";
   }
   string url = json["data"]["stream"]["url"].GetString();
-  XBMC->Log(LOG_NOTICE, "Play URL: %s.", url.c_str());
+  XBMC->Log(LOG_INFO, "Play URL: %s.", url.c_str());
   url = FollowRedirect(url);
   return url;
 }
@@ -321,10 +321,10 @@ string TeleBoy::FollowRedirect(string url)
     string nextUrl = curl.GetLocation();
     if (nextUrl.empty())
     {
-      XBMC->Log(LOG_NOTICE, "Final url : %s.", currUrl.c_str());
+      XBMC->Log(LOG_DEBUG, "Final url : %s.", currUrl.c_str());
       return currUrl;
     }
-    XBMC->Log(LOG_NOTICE, "Redirected to : %s.", nextUrl.c_str());
+    XBMC->Log(LOG_DEBUG, "Redirected to : %s.", nextUrl.c_str());
     currUrl = nextUrl;
   }
   return currUrl;
