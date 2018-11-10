@@ -221,7 +221,7 @@ bool TeleBoy::LoadChannels()
     }
     TeleBoyChannel channel;
     channel.id = c["id"].GetInt();
-    channel.name = c["name"].GetString();
+    channel.name = GetStringOrEmpty(c, "name");
     channel.logoPath = "https://media.cinergy.ch/t_station/"
         + to_string(channel.id) + "/icon320_dark.png";
     channelsById[channel.id] = channel;
@@ -303,7 +303,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
         uniqueId);
     return "";
   }
-  string url = json["data"]["stream"]["url"].GetString();
+  string url = GetStringOrEmpty(json["data"]["stream"], "url");
   XBMC->Log(LOG_INFO, "Play URL: %s.", url.c_str());
   url = FollowRedirect(url);
   return url;
@@ -364,19 +364,13 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       EPG_TAG tag;
       memset(&tag, 0, sizeof(EPG_TAG));
       tag.iUniqueBroadcastId = item["id"].GetInt();
-      tag.strTitle = strdup(item["title"].GetString());
+      tag.strTitle = strdup(GetStringOrEmpty(item, "title").c_str());
       tag.iUniqueChannelId = uniqueChannelId;
-      tag.startTime = Utils::StringToTime(item["begin"].GetString());
-      tag.endTime = Utils::StringToTime(item["end"].GetString());
-      tag.strPlotOutline =
-          item.HasMember("headline") ?
-              strdup(item["headline"].GetString()) : nullptr;
-      tag.strPlot =
-          item.HasMember("short_description") ?
-              strdup(item["short_description"].GetString()) : nullptr;
-      tag.strOriginalTitle =
-          item.HasMember("original_title") ?
-              strdup(item["original_title"].GetString()) : nullptr;
+      tag.startTime = Utils::StringToTime(GetStringOrEmpty(item, "begin"));
+      tag.endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
+      tag.strPlotOutline = strdup(GetStringOrEmpty(item, "headline").c_str());
+      tag.strPlot = strdup(GetStringOrEmpty(item, "short_description").c_str());
+      tag.strOriginalTitle = strdup(GetStringOrEmpty(item, "original_title").c_str());
       tag.strCast = nullptr; /* not supported */
       tag.strDirector = nullptr; /*SA not supported */
       tag.strWriter = nullptr; /* not supported */
@@ -391,12 +385,10 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iEpisodeNumber =
           item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : 0;
       tag.iEpisodePartNumber = 0; /* not supported */
-      tag.strEpisodeName =
-          item.HasMember("subtitle") ?
-              strdup(item["subtitle"].GetString()) : "";
+      tag.strEpisodeName = strdup(GetStringOrEmpty(item, "subtitle").c_str());
       ; /* not supported */
       tag.iGenreType = EPG_GENRE_USE_STRING;
-      tag.strGenreDescription = strdup(item["type"].GetString());
+      tag.strGenreDescription = strdup(GetStringOrEmpty(item, "type").c_str());
       tag.iFlags = EPG_TAG_FLAG_UNDEFINED;
 
       PVR->EpgEventStateChange(&tag, EPG_EVENT_CREATED);
@@ -469,13 +461,10 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
         memset(&tag, 0, sizeof(PVR_TIMER));
 
         tag.iClientIndex = item["id"].GetInt();
-        PVR_STRCPY(tag.strTitle, item["title"].GetString());
-        if (item.HasMember("subtitle"))
-        {
-          PVR_STRCPY(tag.strSummary, item["subtitle"].GetString());
-        }
-        tag.startTime = Utils::StringToTime(item["begin"].GetString());
-        tag.endTime = Utils::StringToTime(item["end"].GetString());
+        PVR_STRCPY(tag.strTitle, GetStringOrEmpty(item, "title").c_str());
+        PVR_STRCPY(tag.strSummary, GetStringOrEmpty(item, "subtitle").c_str());
+        tag.startTime = Utils::StringToTime(GetStringOrEmpty(item, "begin"));
+        tag.endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
         tag.state = PVR_TIMER_STATE_SCHEDULED;
         tag.iTimerType = 1;
         tag.iEpgUid = item["id"].GetInt();
@@ -490,26 +479,15 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
         memset(&tag, 0, sizeof(PVR_RECORDING));
         tag.bIsDeleted = false;
         PVR_STRCPY(tag.strRecordingId, to_string(item["id"].GetInt()).c_str());
-        PVR_STRCPY(tag.strTitle, item["title"].GetString());
-        if (item.HasMember("subtitle"))
-        {
-          PVR_STRCPY(tag.strEpisodeName, item["subtitle"].GetString());
-        }
-        if (item.HasMember("description"))
-        {
-          PVR_STRCPY(tag.strPlot, item["description"].GetString());
-        }
-        if (item.HasMember("short_description"))
-        {
-          PVR_STRCPY(tag.strPlotOutline, item["short_description"].GetString());
-        }
+        PVR_STRCPY(tag.strTitle, GetStringOrEmpty(item, "title").c_str());
+        PVR_STRCPY(tag.strEpisodeName, GetStringOrEmpty(item, "subtitle").c_str());
+        PVR_STRCPY(tag.strPlot, GetStringOrEmpty(item, "description").c_str());
+        PVR_STRCPY(tag.strPlotOutline, GetStringOrEmpty(item, "short_description").c_str());
         tag.iChannelUid = item["station_id"].GetInt();
-        PVR_STRCPY(tag.strIconPath,
-            channelsById[tag.iChannelUid].logoPath.c_str());
-        PVR_STRCPY(tag.strChannelName,
-            channelsById[tag.iChannelUid].name.c_str());
-        tag.recordingTime = Utils::StringToTime(item["begin"].GetString());
-        time_t endTime = Utils::StringToTime(item["end"].GetString());
+        PVR_STRCPY(tag.strIconPath, channelsById[tag.iChannelUid].logoPath.c_str());
+        PVR_STRCPY(tag.strChannelName, channelsById[tag.iChannelUid].name.c_str());
+        tag.recordingTime = Utils::StringToTime(GetStringOrEmpty(item, "begin"));
+        time_t endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
         tag.iDuration = endTime - tag.recordingTime;
         tag.iEpgEventId = item["id"].GetInt();
 
@@ -528,7 +506,7 @@ string TeleBoy::GetRecordingStreamUrl(string recordingId)
         recordingId.c_str());
     return "";
   }
-  string url = json["data"]["stream"]["url"].GetString();
+  string url = GetStringOrEmpty(json["data"]["stream"], "url");
   url = FollowRedirect(url);
   return url;
 }
@@ -562,7 +540,16 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");
     return "";
   }
-  string url = json["data"]["stream"]["url"].GetString();
+  string url = GetStringOrEmpty(json["data"]["stream"], "url");
   url = FollowRedirect(url);
   return url;
+}
+
+string TeleBoy::GetStringOrEmpty(const Value& jsonValue, const char* fieldName)
+{
+  if (!jsonValue.HasMember(fieldName) || !jsonValue[fieldName].IsString())
+  {
+    return "";
+  }
+  return jsonValue[fieldName].GetString();
 }

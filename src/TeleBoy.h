@@ -77,4 +77,5 @@ private:
   virtual string HttpRequest(Curl &curl, string action, string url,
       string postData);
   virtual string FollowRedirect(string url);
+  virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
 };
