@@ -20,8 +20,6 @@ using namespace std;
 using namespace rapidjson;
 
 static const string apiUrl = "http://tv.api.teleboy.ch";
-static const string apiKey =
-    "69d4547562510efe1b5d354bc34656fb34366b6c1023739ce46958007bf17ee9";
 static const string apiDeviceType = "desktop";
 static const string apiVersion = "1.5";
 
@@ -189,6 +187,23 @@ bool TeleBoy::Login(string u, string p)
     return false;
   }
   userId = result.substr(pos, endPos - pos);
+  
+  pos = result.find("tvapiKey:");
+  size_t pos1 = result.find("'", pos) + 1;
+  if (pos == std::string::npos || pos1 > pos + 50)
+  {
+    XBMC->Log(LOG_ERROR, "No api key found.");
+    return false;
+  }
+  endPos = result.find("'", pos1);
+  if (endPos - pos1 > 65 || endPos <= pos)
+  {
+    XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
+    XBMC->Log(LOG_ERROR, "Received api key is invalid.");
+    return false;
+  }
+  apiKey = result.substr(pos1, endPos - pos1);
+  
   isPlusMember = result.find("setIsPlusMember(1", endPos) != std::string::npos;
   isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;

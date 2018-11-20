@@ -57,6 +57,7 @@ private:
   string password;
   bool favoritesOnly;
   string userId;
+  string apiKey;
   map<int, TeleBoyChannel> channelsById;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;

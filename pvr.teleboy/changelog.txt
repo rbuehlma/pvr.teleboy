@@ -1,3 +1,5 @@
+v18.0.22
+ - Extract API key from html
 v18.0.21
  - Reduce logging
  - Sync code with pvr.zattoo
