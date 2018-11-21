@@ -172,30 +172,14 @@ bool TeleBoy::Login(string u, string p)
     return false;
   }
 
-  size_t pos = result.find("setId(");
-  if (pos == std::string::npos)
-  {
-    XBMC->Log(LOG_ERROR, "No user settings found.");
-    return false;
-  }
-  pos += 6;
-  size_t endPos = result.find(")", pos);
-  if (endPos - pos > 15 || endPos <= pos)
-  {
-    XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
-    XBMC->Log(LOG_ERROR, "Received userId is invalid.");
-    return false;
-  }
-  userId = result.substr(pos, endPos - pos);
-  
-  pos = result.find("tvapiKey:");
+  size_t pos = result.find("tvapiKey:");
   size_t pos1 = result.find("'", pos) + 1;
   if (pos == std::string::npos || pos1 > pos + 50)
   {
     XBMC->Log(LOG_ERROR, "No api key found.");
     return false;
   }
-  endPos = result.find("'", pos1);
+  size_t endPos = result.find("'", pos1);
   if (endPos - pos1 > 65 || endPos <= pos)
   {
     XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
@@ -203,7 +187,23 @@ bool TeleBoy::Login(string u, string p)
     return false;
   }
   apiKey = result.substr(pos1, endPos - pos1);
-  
+
+  pos = result.find("setId(");
+  if (pos == std::string::npos)
+  {
+    XBMC->Log(LOG_ERROR, "No user settings found.");
+    return false;
+  }
+  pos += 6;
+  endPos = result.find(")", pos);
+  if (endPos - pos > 15 || endPos <= pos)
+  {
+    XBMC->Log(LOG_DEBUG, "Got HTML body: %s", result.c_str());
+    XBMC->Log(LOG_ERROR, "Received userId is invalid.");
+    return false;
+  }
+  userId = result.substr(pos, endPos - pos);
+
   isPlusMember = result.find("setIsPlusMember(1", endPos) != std::string::npos;
   isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;

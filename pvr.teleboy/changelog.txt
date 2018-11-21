@@ -1,3 +1,5 @@
+v18.0.23
+ - Fix check for plus and comfort member
 v18.0.22
  - Extract API key from html
 v18.0.21
