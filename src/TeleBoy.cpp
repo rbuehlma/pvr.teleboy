@@ -456,7 +456,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
     Document json;
     if (!ApiGet(
         "/users/" + userId + "/recordings/" + type
-            + "?desc=1&expand=flags,logos&limit=100&skip=0&sort=date", json))
+            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json))
     {
       XBMC->Log(LOG_ERROR, "Error getting recordings of type %s.",
           type.c_str());
