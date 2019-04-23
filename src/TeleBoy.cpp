@@ -345,10 +345,10 @@ string TeleBoy::FollowRedirect(string url)
   return currUrl;
 }
 
-void TeleBoy::GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart,
+void TeleBoy::GetEPGForChannel(int iChannelUid, time_t iStart,
     time_t iEnd)
 {
-  UpdateThread::LoadEpg(channel.iUniqueId, iStart, iEnd);
+  UpdateThread::LoadEpg(iChannelUid, iStart, iEnd);
 }
 
 void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
@@ -394,7 +394,6 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.strIconPath = nullptr; /* not supported */
       tag.iParentalRating = 0; /* not supported */
       tag.iStarRating = 0; /* not supported */
-      tag.bNotify = false; /* not supported */
       tag.iSeriesNumber =
           item.HasMember("serie_season") ? item["serie_season"].GetInt() : 0;
       tag.iEpisodeNumber =
