@@ -244,14 +244,14 @@ const char *GetBackendHostname(void)
   return "";
 }
 
-PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel,
+PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, int iChannelUid,
     time_t iStart, time_t iEnd)
 {
   runningRequests++;
   PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
   if (teleboy)
   {
-    teleboy->GetEPGForChannel(channel, iStart, iEnd);
+    teleboy->GetEPGForChannel(iChannelUid, iStart, iEnd);
     ret = PVR_ERROR_NO_ERROR;
   }
   runningRequests--;
@@ -650,13 +650,12 @@ DemuxPacket* DemuxRead(void)
 {
   return NULL;
 }
+void FillBuffer(bool mode) 
+{
+}
 unsigned int GetChannelSwitchDelay(void)
 {
   return 0;
-}
-bool IsTimeshifting(void)
-{
-  return false;
 }
 bool IsRealTimeStream(void)
 {

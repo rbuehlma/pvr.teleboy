@@ -41,7 +41,7 @@ public:
   virtual void TransferChannel(ADDON_HANDLE handle, TeleBoyChannel channel,
       int channelNum);
   virtual std::string GetChannelStreamUrl(int uniqueId);
-  virtual void GetEPGForChannel(const PVR_CHANNEL &channel, time_t iStart,
+  virtual void GetEPGForChannel(int iChannelUid, time_t iStart,
       time_t iEnd);
   void GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t iEnd);
   virtual void GetRecordings(ADDON_HANDLE handle, string type);
