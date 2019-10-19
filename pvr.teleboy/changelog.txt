@@ -1,3 +1,5 @@
+v18.0.25
+ - Correctly load genres
 v18.0.24
  - Fix loading more than 100 recordings
 v18.0.23

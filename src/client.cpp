@@ -101,6 +101,7 @@ ADDON_STATUS ADDON_Create(void *hdl, void *props)
       if (teleboy->Login(teleboyUsername, teleboyPassword)) {
         XBMC->Log(LOG_DEBUG, "Login done");
         teleboy->LoadChannels();
+        teleboy->LoadGenres();
         m_CurStatus = ADDON_STATUS_OK;
       } else {
         XBMC->Log(LOG_ERROR, "Login failed");
