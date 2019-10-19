@@ -21,11 +21,9 @@ struct TeleBoyChannel
   std::string logoPath;
 };
 
-struct PVRIptvEpgGenre
+struct TeleboyGenre
 {
-  int iGenreType;
-  int iGenreSubType;
-  std::string strGenre;
+  std::string name;
 };
 
 class TeleBoy
@@ -34,6 +32,7 @@ public:
   TeleBoy(bool favoritesOnly);
   virtual ~TeleBoy();
   virtual bool Login(string u, string p);
+  void LoadGenres();
   virtual bool LoadChannels();
   virtual void GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities);
   virtual int GetChannelsAmount(void);
@@ -59,6 +58,7 @@ private:
   string userId;
   string apiKey;
   map<int, TeleBoyChannel> channelsById;
+  map<int, TeleboyGenre> genresById;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;
