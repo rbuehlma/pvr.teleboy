@@ -217,6 +217,40 @@ void TeleBoy::GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
   pCapabilities->bSupportsTimers = true;
 }
 
+void TeleBoy::LoadGenres()
+{
+  Document json;
+  if (!ApiGet("/epg/genres", json))
+  {
+    XBMC->Log(LOG_ERROR, "Error loading genres.");
+    return;
+  }
+  Value& genres = json["data"]["items"];
+  for (Value::ConstValueIterator itr1 = genres.Begin();
+      itr1 != genres.End(); ++itr1)
+  {
+    const Value &genre = (*itr1);
+    TeleboyGenre teleboyGenre;
+    int id = genre["id"].GetInt();
+    teleboyGenre.name = GetStringOrEmpty(genre, "name");
+    genresById[id] = teleboyGenre;
+    
+    if (genre.HasMember("sub_genres")) {
+      const Value& subGenres = genre["sub_genres"];
+
+      for (Value::ConstValueIterator itr1 = subGenres.Begin();
+          itr1 != subGenres.End(); ++itr1)
+      {
+        const Value &subGenre = (*itr1);
+        TeleboyGenre teleboySubGenre;
+        int subId = subGenre["id"].GetInt();
+        teleboySubGenre.name = GetStringOrEmpty(subGenre, "name");
+        genresById[subId] = teleboySubGenre;
+      }
+    }
+  }
+}
+
 bool TeleBoy::LoadChannels()
 {
   Document json;
@@ -400,9 +434,11 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
           item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : 0;
       tag.iEpisodePartNumber = 0; /* not supported */
       tag.strEpisodeName = strdup(GetStringOrEmpty(item, "subtitle").c_str());
-      ; /* not supported */
-      tag.iGenreType = EPG_GENRE_USE_STRING;
-      tag.strGenreDescription = strdup(GetStringOrEmpty(item, "type").c_str());
+      if (item.HasMember("genre_id")) {
+        tag.iGenreType = EPG_GENRE_USE_STRING;
+        int genreId = item["genre_id"].GetInt();
+        tag.strGenreDescription = genresById[genreId].name.c_str();
+      }
       tag.iFlags = EPG_TAG_FLAG_UNDEFINED;
 
       PVR->EpgEventStateChange(&tag, EPG_EVENT_CREATED);
