@@ -79,4 +79,6 @@ private:
       string postData);
   virtual string FollowRedirect(string url);
   virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
+  bool WriteDataJson();
+  bool ReadDataJson();
 };

@@ -22,6 +22,7 @@ using namespace rapidjson;
 static const string apiUrl = "http://tv.api.teleboy.ch";
 static const string apiDeviceType = "desktop";
 static const string apiVersion = "1.5";
+const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
 
 string TeleBoy::HttpGet(Curl &curl, string url)
 {
@@ -57,9 +58,10 @@ string TeleBoy::HttpRequest(Curl &curl, string action, string url,
     content = curl.Get(url, statusCode);
   }
   string cinergys = curl.GetCookie("cinergy_s");
-  if (!cinergys.empty())
+  if (!cinergys.empty() && cinergys != cinergySCookies)
   {
     cinergySCookies = cinergys;
+    WriteDataJson();
   }
   return content;
 }
@@ -120,6 +122,7 @@ TeleBoy::TeleBoy(bool favoritesOnly) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         ""), isPlusMember(false), isComfortMember(false)
 {
+  ReadDataJson();
   for (int i = 0; i < 5; ++i)
   {
     updateThreads.emplace_back(new UpdateThread(this));
@@ -140,38 +143,50 @@ bool TeleBoy::Login(string u, string p)
 {
   string tbUrl = "https://www.teleboy.ch";
   Curl curl;
-  curl.AddHeader("redirect-limit", "0");
-  HttpGet(curl, tbUrl + "/login");
-  string location = curl.GetLocation();
-  if (location.find("t.teleboy.ch") != string::npos)
-  {
-    XBMC->Log(LOG_NOTICE, "Using t.teleboy.ch.");
-    tbUrl = "https://t.teleboy.ch";
-    HttpGet(curl, tbUrl + "/login");
-  }
-  curl.AddHeader("Referer", tbUrl + "/login");
   if (!cinergySCookies.empty())
   {
     curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
   }
-  string result = HttpPost(curl, tbUrl + "/login_check",
-      "login=" + Utils::UrlEncode(u) + "&password=" + Utils::UrlEncode(p)
-          + "&keep_login=1");
-  curl.ResetHeaders();
-  curl.AddHeader("redirect-limit", "5");
-  curl.AddHeader("Referer", tbUrl + "/login");
-  if (!cinergySCookies.empty())
-  {
-    curl.AddOption("cookie", "welcomead=1; cinergy_s=" + cinergySCookies);
+  string result = HttpGet(curl, tbUrl + "/live");
+  bool isAuthenticated = result.find("setIsAuthenticated(true") != std::string::npos;
+  curl.AddHeader("redirect-limit", "0");
+  
+  if (!isAuthenticated) {
+    XBMC->Log(LOG_INFO, "Not yet authenticated. Try to login.");
+    HttpGet(curl, tbUrl + "/login");
+    string location = curl.GetLocation();
+    if (location.find("t.teleboy.ch") != string::npos)
+    {
+      XBMC->Log(LOG_NOTICE, "Using t.teleboy.ch.");
+      tbUrl = "https://t.teleboy.ch";
+      HttpGet(curl, tbUrl + "/login");
+    }
+    curl.AddHeader("Referer", tbUrl + "/login");
+    if (!cinergySCookies.empty())
+    {
+      curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
+    }
+    result = HttpPost(curl, tbUrl + "/login_check",
+        "login=" + Utils::UrlEncode(u) + "&password=" + Utils::UrlEncode(p)
+            + "&keep_login=1");
+    curl.ResetHeaders();
+    curl.AddHeader("redirect-limit", "5");
+    curl.AddHeader("Referer", tbUrl + "/login");
+    if (!cinergySCookies.empty())
+    {
+      curl.AddOption("cookie", "welcomead=1; cinergy_s=" + cinergySCookies);
+    }
+    result = HttpGet(curl, tbUrl);
+    curl.ResetHeaders();
+    if (result.empty())
+    {
+      XBMC->Log(LOG_ERROR, "Failed to login.");
+      return false;
+    }
+  } else {
+    XBMC->Log(LOG_INFO, "Already authenticated.");
   }
-  result = HttpGet(curl, tbUrl);
-  curl.ResetHeaders();
-  if (result.empty())
-  {
-    XBMC->Log(LOG_ERROR, "Failed to login.");
-    return false;
-  }
-
+  
   size_t pos = result.find("tvapiKey:");
   size_t pos1 = result.find("'", pos) + 1;
   if (pos == std::string::npos || pos1 > pos + 50)
@@ -346,7 +361,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/live/" + to_string(uniqueId)
-          + "?alternative=false", json))
+          + "?expand=primary_image,flags&https=1&streamformat=dash", json))
   {
     XBMC->Log(LOG_ERROR, "Error getting live stream url for channel %i.",
         uniqueId);
@@ -602,4 +617,64 @@ string TeleBoy::GetStringOrEmpty(const Value& jsonValue, const char* fieldName)
     return "";
   }
   return jsonValue[fieldName].GetString();
+}
+
+bool TeleBoy::ReadDataJson()
+{
+  if (!XBMC->FileExists(data_file, true))
+  {
+    return true;
+  }
+  std::string jsonString = Utils::ReadFile(data_file);
+  if (jsonString.empty())
+  {
+    XBMC->Log(LOG_ERROR, "Loading data.json failed.");
+    return false;
+  }
+
+  Document doc;
+  doc.Parse(jsonString.c_str());
+  if (doc.GetParseError())
+  {
+    XBMC->Log(LOG_ERROR, "Parsing data.json failed.");
+    return false;
+  }
+
+  if (doc.HasMember("cinergy_s"))
+  {
+    cinergySCookies = GetStringOrEmpty(doc, "cinergy_s");
+    XBMC->Log(LOG_DEBUG, "Loaded cinergy_s: %s..", cinergySCookies.substr(0, 5).c_str());
+  }
+
+  XBMC->Log(LOG_DEBUG, "Loaded data.json.");
+  return true;
+}
+
+bool TeleBoy::WriteDataJson()
+{
+  void* file;
+  if (!(file = XBMC->OpenFileForWrite(data_file, true)))
+  {
+    XBMC->Log(LOG_ERROR, "Save data.json failed.");
+    return false;
+  }
+
+  Document d;
+  d.SetObject();
+  Document::AllocatorType& allocator = d.GetAllocator();
+  
+  if (!cinergySCookies.empty())
+  {
+    Value cinergySValue;
+    cinergySValue.SetString(cinergySCookies.c_str(), cinergySCookies.length(), allocator);
+    d.AddMember("cinergy_s", cinergySValue, allocator);
+  }
+
+  StringBuffer buffer;
+  Writer<StringBuffer> writer(buffer);
+  d.Accept(writer);
+  const char* output = buffer.GetString();
+  XBMC->WriteFile(file, output, strlen(output));
+  XBMC->CloseFile(file);
+  return true;
 }
