@@ -19,9 +19,9 @@ using namespace ADDON;
 using namespace std;
 using namespace rapidjson;
 
-static const string apiUrl = "http://tv.api.teleboy.ch";
+static const string apiUrl = "https://tv.api.teleboy.ch";
 static const string apiDeviceType = "desktop";
-static const string apiVersion = "1.5";
+static const string apiVersion = "2.0";
 const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
 
 string TeleBoy::HttpGet(Curl &curl, string url)
