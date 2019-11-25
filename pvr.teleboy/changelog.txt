@@ -1,3 +1,5 @@
+v19.3.1
+ - Actually use dash streams
 v19.3.0
  - Persist session cookie
  - Use dash streams
@@ -11,6 +13,8 @@ v19.1.0
  - Update to GUI addon API v5.14.0
 v19.0.0
  - Update to PVR addon API v6.0.0
+v18.1.1
+ - Actually use dash streams
 v18.1.0
  - Persist session cookie
  - Use dash streams

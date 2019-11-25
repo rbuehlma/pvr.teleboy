@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.3.0"
+       version="19.3.1"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>@ADDON_DEPENDS@</requires>
