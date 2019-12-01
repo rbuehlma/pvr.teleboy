@@ -1,3 +1,6 @@
+v18.1.2
+ - Fix logos
+ - Serialize sending EPG to Kodi
 v18.1.1
  - Actually use dash streams
 v18.1.0
