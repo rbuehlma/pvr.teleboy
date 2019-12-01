@@ -81,4 +81,5 @@ private:
   virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
   bool WriteDataJson();
   bool ReadDataJson();
+  static P8PLATFORM::CMutex sendEpgToKodiMutex;
 };

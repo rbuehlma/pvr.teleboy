@@ -23,6 +23,7 @@ static const string apiUrl = "https://tv.api.teleboy.ch";
 static const string apiDeviceType = "desktop";
 static const string apiVersion = "2.0";
 const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
+P8PLATFORM::CMutex TeleBoy::sendEpgToKodiMutex;
 
 string TeleBoy::HttpGet(Curl &curl, string url)
 {
@@ -286,7 +287,7 @@ bool TeleBoy::LoadChannels()
     TeleBoyChannel channel;
     channel.id = c["id"].GetInt();
     channel.name = GetStringOrEmpty(c, "name");
-    channel.logoPath = "https://media.cinergy.ch/t_station/"
+    channel.logoPath = "https://www.teleboy.ch/assets/stations/"
         + to_string(channel.id) + "/icon320_dark.png";
     channelsById[channel.id] = channel;
   }
@@ -420,6 +421,12 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
     }
     totals = json["data"]["total"].GetInt();
     const Value& items = json["data"]["items"];
+    
+    if (!sendEpgToKodiMutex.Lock()) {
+      XBMC->Log(LOG_ERROR, "Failed to lock sendEpgToKodiMutex.");
+      return;
+    }
+    
     for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
         ++itr1)
     {
@@ -458,6 +465,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 
       PVR->EpgEventStateChange(&tag, EPG_EVENT_CREATED);
     }
+    sendEpgToKodiMutex.Unlock();
     XBMC->Log(LOG_DEBUG, "Loaded %i of %i epg entries for channel %i.", sum,
         totals, uniqueChannelId);
   }
