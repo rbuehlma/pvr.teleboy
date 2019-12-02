@@ -362,7 +362,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/live/" + to_string(uniqueId)
-          + "?expand=primary_image,flags&https=1&streamformat=dash", json))
+          + "?expand=primary_image,flags&https=1&streamformat=dash&dolby=1", json))
   {
     XBMC->Log(LOG_ERROR, "Error getting live stream url for channel %i.",
         uniqueId);
@@ -574,7 +574,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
 string TeleBoy::GetRecordingStreamUrl(string recordingId)
 {
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/recording/" + recordingId, json))
+  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?dolby=1&streamformat=dash", json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for recording: %s.",
         recordingId.c_str());
@@ -608,8 +608,8 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
 {
   Document json;
   if (!ApiGet(
-      "/users/" + userId + "/stream/replay/"
-          + to_string(tag->iUniqueBroadcastId), json))
+      "/users/" + userId + "/stream/"+ to_string(tag->iUniqueBroadcastId) + "?dolby=1&streamformat=dash"
+          , json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");
     return "";
