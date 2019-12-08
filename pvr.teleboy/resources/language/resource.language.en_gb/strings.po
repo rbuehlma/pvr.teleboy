@@ -24,7 +24,10 @@ msgctxt "#37103"
 msgid "Favourite channels only"
 msgstr "Load only channels which are in the favourite list"
 
+msgctxt "#37104"
+msgid "Enable Dolby"
+msgstr "Enable support for dolby"
+
 msgctxt "#37111"
 msgid "Login failed!"
 msgstr ""
-

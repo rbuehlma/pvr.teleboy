@@ -119,7 +119,7 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
   return ApiGetResult(content, doc);
 }
 
-TeleBoy::TeleBoy(bool favoritesOnly) :
+TeleBoy::TeleBoy(bool favoritesOnly, bool enableDolby) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         ""), isPlusMember(false), isComfortMember(false)
 {
@@ -129,6 +129,7 @@ TeleBoy::TeleBoy(bool favoritesOnly) :
     updateThreads.emplace_back(new UpdateThread(this));
   }
   this->favoritesOnly = favoritesOnly;
+  this->enableDolby = enableDolby;
 }
 
 TeleBoy::~TeleBoy()
@@ -364,7 +365,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/live/" + to_string(uniqueId)
-          + "?expand=primary_image,flags&https=1&streamformat=dash&dolby=1", json))
+          + "?expand=primary_image,flags&https=1" + GetStreamParameters(), json))
   {
     XBMC->Log(LOG_ERROR, "Error getting live stream url for channel %i.",
         uniqueId);
@@ -584,7 +585,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
 string TeleBoy::GetRecordingStreamUrl(string recordingId)
 {
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?dolby=1&streamformat=dash", json))
+  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?" + GetStreamParameters(), json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for recording: %s.",
         recordingId.c_str());
@@ -618,7 +619,7 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
 {
   Document json;
   if (!ApiGet(
-      "/users/" + userId + "/stream/"+ to_string(tag->iUniqueBroadcastId) + "?dolby=1&streamformat=dash"
+      "/users/" + userId + "/stream/"+ to_string(tag->iUniqueBroadcastId) + "?" + GetStreamParameters()
           , json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");
@@ -696,4 +697,10 @@ bool TeleBoy::WriteDataJson()
   XBMC->WriteFile(file, output, strlen(output));
   XBMC->CloseFile(file);
   return true;
+}
+
+std::string TeleBoy::GetStreamParameters() {
+  std::string params = enableDolby ? "&dolby=1" : "";
+  params += "&streamformat=dash";
+  return params;
 }

@@ -31,7 +31,7 @@ struct TeleboyGenre
 class TeleBoy
 {
 public:
-  TeleBoy(bool favoritesOnly);
+  TeleBoy(bool favoritesOnly, bool enableDolby);
   virtual ~TeleBoy();
   virtual bool Login(string u, string p);
   void LoadGenres();
@@ -57,10 +57,12 @@ private:
   string username;
   string password;
   bool favoritesOnly;
+  bool enableDolby;
   string userId;
   string apiKey;
   map<int, TeleBoyChannel> channelsById;
   map<int, TeleboyGenre> genresById;
+  static P8PLATFORM::CMutex sendEpgToKodiMutex;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;
@@ -84,5 +86,5 @@ private:
   virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
   bool WriteDataJson();
   bool ReadDataJson();
-  static P8PLATFORM::CMutex sendEpgToKodiMutex;
+  std::string GetStreamParameters();
 };
