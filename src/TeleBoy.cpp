@@ -249,6 +249,7 @@ void TeleBoy::LoadGenres()
     TeleboyGenre teleboyGenre;
     int id = genre["id"].GetInt();
     teleboyGenre.name = GetStringOrEmpty(genre, "name");
+    teleboyGenre.nameEn = GetStringOrEmpty(genre, "name_en");
     genresById[id] = teleboyGenre;
     
     if (genre.HasMember("sub_genres")) {
@@ -261,6 +262,7 @@ void TeleBoy::LoadGenres()
         TeleboyGenre teleboySubGenre;
         int subId = subGenre["id"].GetInt();
         teleboySubGenre.name = GetStringOrEmpty(subGenre, "name");
+        teleboySubGenre.nameEn = GetStringOrEmpty(subGenre, "name_en");
         genresById[subId] = teleboySubGenre;
       }
     }
@@ -458,9 +460,17 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iEpisodePartNumber = 0; /* not supported */
       tag.strEpisodeName = strdup(GetStringOrEmpty(item, "subtitle").c_str());
       if (item.HasMember("genre_id")) {
-        tag.iGenreType = EPG_GENRE_USE_STRING;
         int genreId = item["genre_id"].GetInt();
-        tag.strGenreDescription = genresById[genreId].name.c_str();
+        TeleboyGenre genre = genresById[genreId];
+        int kodiGenre = m_categories.Category(genre.nameEn);
+        if (kodiGenre == 0) {
+          tag.iGenreType = EPG_GENRE_USE_STRING;
+          tag.iGenreSubType = 0;
+          tag.strGenreDescription = genre.name.c_str();
+        } else {
+          tag.iGenreSubType = kodiGenre & 0x0F;
+          tag.iGenreType = kodiGenre & 0xF0;
+        }
       }
       tag.iFlags = EPG_TAG_FLAG_UNDEFINED;
 

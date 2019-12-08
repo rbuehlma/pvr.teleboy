@@ -1,6 +1,7 @@
 #include "client.h"
 #include "UpdateThread.h"
 #include "Curl.h"
+#include "categories.h"
 #include <map>
 #include <mutex>
 #include "rapidjson/document.h"
@@ -24,6 +25,7 @@ struct TeleBoyChannel
 struct TeleboyGenre
 {
   std::string name;
+  std::string nameEn;
 };
 
 class TeleBoy
@@ -65,6 +67,7 @@ private:
   string cinergySCookies;
   bool isPlusMember;
   bool isComfortMember;
+  Categories m_categories;
 
   virtual string formatDateTime(time_t dateTime);
   virtual string HttpGet(Curl &curl, string url);
