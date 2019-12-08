@@ -32,6 +32,7 @@ CHelper_libXBMC_pvr *PVR = NULL;
 std::string teleboyUsername = "";
 std::string teleboyPassword = "";
 bool teleboyFavoritesOnly = false;
+bool teleboyEnableDolby = true;
 int runningRequests = 0;
 
 extern "C"
@@ -53,6 +54,10 @@ void ADDON_ReadSettings(void)
   if (XBMC->GetSetting("favoritesonly", &boolBuffer))
   {
     teleboyFavoritesOnly = boolBuffer;
+  }
+  if (XBMC->GetSetting("enableDolby", &boolBuffer))
+  {
+    teleboyEnableDolby = boolBuffer;
   }
   XBMC->Log(LOG_DEBUG, "End Readsettings");
 }
@@ -94,7 +99,7 @@ ADDON_STATUS ADDON_Create(void *hdl, void *props)
   teleboyPassword = "";
   ADDON_ReadSettings();
   XBMC->Log(LOG_DEBUG, "Create Teleboy");
-    teleboy = new TeleBoy(teleboyFavoritesOnly);
+    teleboy = new TeleBoy(teleboyFavoritesOnly, teleboyEnableDolby);
     XBMC->Log(LOG_DEBUG, "Teleboy created");
     if (!teleboyUsername.empty() && !teleboyPassword.empty()) {
       XBMC->Log(LOG_DEBUG, "Login Teleboy");
