@@ -1,3 +1,6 @@
+v18.1.4
+ - Use Kodi epg categories
+ - Add option to disable Dolby 
 v18.1.3
  - Use new stream api for replay and recordings
  - Support Dolby
