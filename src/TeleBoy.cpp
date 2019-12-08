@@ -119,7 +119,7 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
   return ApiGetResult(content, doc);
 }
 
-TeleBoy::TeleBoy(bool favoritesOnly) :
+TeleBoy::TeleBoy(bool favoritesOnly, bool enableDolby) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         ""), isPlusMember(false), isComfortMember(false)
 {
@@ -129,6 +129,7 @@ TeleBoy::TeleBoy(bool favoritesOnly) :
     updateThreads.emplace_back(new UpdateThread(this));
   }
   this->favoritesOnly = favoritesOnly;
+  this->enableDolby = enableDolby;
 }
 
 TeleBoy::~TeleBoy()
@@ -249,6 +250,7 @@ void TeleBoy::LoadGenres()
     TeleboyGenre teleboyGenre;
     int id = genre["id"].GetInt();
     teleboyGenre.name = GetStringOrEmpty(genre, "name");
+    teleboyGenre.nameEn = GetStringOrEmpty(genre, "name_en");
     genresById[id] = teleboyGenre;
     
     if (genre.HasMember("sub_genres")) {
@@ -261,6 +263,7 @@ void TeleBoy::LoadGenres()
         TeleboyGenre teleboySubGenre;
         int subId = subGenre["id"].GetInt();
         teleboySubGenre.name = GetStringOrEmpty(subGenre, "name");
+        teleboySubGenre.nameEn = GetStringOrEmpty(subGenre, "name_en");
         genresById[subId] = teleboySubGenre;
       }
     }
@@ -362,7 +365,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/live/" + to_string(uniqueId)
-          + "?expand=primary_image,flags&https=1&streamformat=dash&dolby=1", json))
+          + "?expand=primary_image,flags&https=1" + GetStreamParameters(), json))
   {
     XBMC->Log(LOG_ERROR, "Error getting live stream url for channel %i.",
         uniqueId);
@@ -457,9 +460,17 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iEpisodePartNumber = 0; /* not supported */
       tag.strEpisodeName = strdup(GetStringOrEmpty(item, "subtitle").c_str());
       if (item.HasMember("genre_id")) {
-        tag.iGenreType = EPG_GENRE_USE_STRING;
         int genreId = item["genre_id"].GetInt();
-        tag.strGenreDescription = genresById[genreId].name.c_str();
+        TeleboyGenre genre = genresById[genreId];
+        int kodiGenre = m_categories.Category(genre.nameEn);
+        if (kodiGenre == 0) {
+          tag.iGenreType = EPG_GENRE_USE_STRING;
+          tag.iGenreSubType = 0;
+          tag.strGenreDescription = genre.name.c_str();
+        } else {
+          tag.iGenreSubType = kodiGenre & 0x0F;
+          tag.iGenreType = kodiGenre & 0xF0;
+        }
       }
       tag.iFlags = EPG_TAG_FLAG_UNDEFINED;
 
@@ -573,7 +584,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
 string TeleBoy::GetRecordingStreamUrl(string recordingId)
 {
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?dolby=1&streamformat=dash", json))
+  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?" + GetStreamParameters(), json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for recording: %s.",
         recordingId.c_str());
@@ -607,7 +618,7 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
 {
   Document json;
   if (!ApiGet(
-      "/users/" + userId + "/stream/"+ to_string(tag->iUniqueBroadcastId) + "?dolby=1&streamformat=dash"
+      "/users/" + userId + "/stream/"+ to_string(tag->iUniqueBroadcastId) + "?" + GetStreamParameters()
           , json))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");
@@ -685,4 +696,10 @@ bool TeleBoy::WriteDataJson()
   XBMC->WriteFile(file, output, strlen(output));
   XBMC->CloseFile(file);
   return true;
+}
+
+std::string TeleBoy::GetStreamParameters() {
+  std::string params = enableDolby ? "&dolby=1" : "";
+  params += "&streamformat=dash";
+  return params;
 }

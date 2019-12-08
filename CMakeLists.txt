@@ -22,6 +22,7 @@ set(TELEBOY_SOURCES
 		src/Curl.cpp
 		src/TeleBoy.cpp
 		src/UpdateThread.cpp
+		src/categories.cpp
 )
 
 set(TELEBOY_HEADERS
@@ -31,6 +32,7 @@ set(TELEBOY_HEADERS
 		src/TeleBoy.h
 		src/to_string.h
 		src/Utils.h
+		src/categories.h
 )
 
 if(WIN32)

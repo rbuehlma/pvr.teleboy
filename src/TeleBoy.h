@@ -1,6 +1,7 @@
 #include "client.h"
 #include "UpdateThread.h"
 #include "Curl.h"
+#include "categories.h"
 #include <map>
 #include <mutex>
 #include "rapidjson/document.h"
@@ -24,12 +25,13 @@ struct TeleBoyChannel
 struct TeleboyGenre
 {
   std::string name;
+  std::string nameEn;
 };
 
 class TeleBoy
 {
 public:
-  TeleBoy(bool favoritesOnly);
+  TeleBoy(bool favoritesOnly, bool enableDolby);
   virtual ~TeleBoy();
   virtual bool Login(string u, string p);
   void LoadGenres();
@@ -55,16 +57,19 @@ private:
   string username;
   string password;
   bool favoritesOnly;
+  bool enableDolby;
   string userId;
   string apiKey;
   map<int, TeleBoyChannel> channelsById;
   map<int, TeleboyGenre> genresById;
+  static P8PLATFORM::CMutex sendEpgToKodiMutex;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;
   string cinergySCookies;
   bool isPlusMember;
   bool isComfortMember;
+  Categories m_categories;
 
   virtual string formatDateTime(time_t dateTime);
   virtual string HttpGet(Curl &curl, string url);
@@ -81,5 +86,5 @@ private:
   virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
   bool WriteDataJson();
   bool ReadDataJson();
-  static P8PLATFORM::CMutex sendEpgToKodiMutex;
+  std::string GetStreamParameters();
 };
