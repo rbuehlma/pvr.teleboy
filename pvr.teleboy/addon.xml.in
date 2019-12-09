@@ -3,7 +3,10 @@
        version="18.1.4"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
-  <requires>@ADDON_DEPENDS@</requires>
+  <requires>
+    @ADDON_DEPENDS@
+    <import addon="inputstream.adaptive" minversion="2.4.2"/>
+  </requires>
   <extension point="xbmc.pvrclient" library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
     <summary lang="de_DE">Kodi-PVR-Client für Teleboy</summary>
