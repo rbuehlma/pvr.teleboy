@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="18.1.4"
+       version="18.1.5"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -25,5 +25,94 @@
     <disclaimer lang="en_NZ">The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects..</disclaimer>
     <disclaimer lang="en_US">The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects..</disclaimer>
     <platform>@PLATFORM@</platform>
+    <news>
+v18.1.5
+ - Add inputstream.adaptive as dependency
+ - Move changelog to addon metadata
+v18.1.4
+ - Use Kodi epg categories
+ - Add option to disable Dolby 
+v18.1.3
+ - Use new stream api for replay and recordings
+ - Support Dolby
+v18.1.2
+ - Fix logos
+ - Serialize sending EPG to Kodi
+v18.1.1
+ - Actually use dash streams
+v18.1.0
+ - Persist session cookie
+ - Use dash streams
+v18.0.25
+ - Correctly load genres
+v18.0.24
+ - Fix loading more than 100 recordings
+v18.0.23
+ - Fix check for plus and comfort member
+v18.0.22
+ - Extract API key from html
+v18.0.21
+ - Reduce logging
+ - Sync code with pvr.zattoo
+v18.0.20
+ - Add missing mutex unlock
+v18.0.19
+ - Update to PVR API v5.10.1
+v18.0.18
+ - Update to PVR API v5.10.0
+v18.0.17
+ - Add additional EPG fields (thanks to martinwilli)
+v18.0.16
+ - Seek 5 minutes into replay and recording stream
+v18.0.15
+ - Update to PVR API 5.9.0
+v18.0.14
+ - Log notice if t.teleboy.ch is used
+v18.0.13
+ - Fix null pointer exception
+v18.0.12
+ - Cleanup due to merge in Kodi
+v18.0.11
+ - Follow stream redirects to workaround bug in inputstream.adaptive
+v18.0.10
+ - Automatically switch to t.teleboy.ch if redirected
+v18.0.9
+ - Allow switching to t.teleboy.ch
+v18.0.8
+ - Fix time zone handling
+ - Fix race conditions while closing the addon
+v18.0.7
+ - Fix login for free accounts
+v18.0.6
+ - Output HTML body in case login fails
+v18.0.5
+ - Make loading EPG multithreaded
+v18.0.4
+ - Add debian folder
+v18.0.3
+ - Fix windows build
+ - Limit update threads to 1
+v18.0.2
+ - Switch to kodi curl implementation
+ - Load EPG async
+ - Cleanup
+v18.0.1
+ - Implement replay api
+v18.0.0
+ - Adapt for Kodi 18 Leia
+v17.0.5
+ - Initial support for Kodi 18 Leia
+ - Added minimalistic support for PVR Addon API 5.3.0
+v17.0.4
+ - Add some information to recordings and epg
+v17.0.3
+ - Add UpdateThread to update timer and recordings
+v17.0.2
+ - Fix error upon installation without settings
+v17.0.1
+ - Remove fixed userId
+v17.0.0
+ - Initial version
+    </news>
   </extension>
 </addon>
