@@ -71,12 +71,13 @@ private:
   bool isComfortMember;
   Categories m_categories;
 
-  virtual string formatDateTime(time_t dateTime);
+  virtual string FormatDate(time_t dateTime);
+  virtual string HttpGetCached(Curl &curl, const std::string& url, time_t cacheDuration);
   virtual string HttpGet(Curl &curl, string url);
   virtual string HttpDelete(Curl &curl, string url);
   virtual void ApiSetHeader(Curl &curl);
   virtual bool ApiGetResult(string content, Document &doc);
-  virtual bool ApiGet(string url, Document &doc);
+  virtual bool ApiGet(string url, Document &doc, time_t cacheDuration);
   virtual bool ApiPost(string url, string postData, Document &doc);
   virtual bool ApiDelete(string url, Document &doc);
   virtual string HttpPost(Curl &curl, string url, string postData);
