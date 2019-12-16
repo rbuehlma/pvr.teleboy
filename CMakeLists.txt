@@ -23,6 +23,8 @@ set(TELEBOY_SOURCES
 		src/Utils.cpp
 		src/client.cpp
 		src/Curl.cpp
+		src/md5.cpp
+		src/Cache.cpp
 		src/TeleBoy.cpp
 		src/UpdateThread.cpp
 		src/categories.cpp
@@ -30,6 +32,8 @@ set(TELEBOY_SOURCES
 
 set(TELEBOY_HEADERS
 		src/Curl.h
+		src/md5.h
+		src/Cache.h
 		src/UpdateThread.h
 		src/client.h
 		src/TeleBoy.h
@@ -48,6 +52,9 @@ endif ( CMAKE_COMPILER_IS_GNUCC )
 if ( MSVC )
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /W4")
 endif ( MSVC )
+
+addon_version(pvr.teleboy TELEBOY)
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DTELEBOY_VERSION=${TELEBOY_VERSION} -DKODI_VERSION=${kodiplatform_VERSION}")
 
 
 build_addon(pvr.teleboy TELEBOY DEPLIBS)

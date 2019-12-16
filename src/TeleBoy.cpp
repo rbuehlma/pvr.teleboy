@@ -8,6 +8,8 @@
 #include <time.h>
 #include <random>
 #include "Utils.h"
+#include "Cache.h"
+#include "md5.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
@@ -24,6 +26,29 @@ static const string apiDeviceType = "desktop";
 static const string apiVersion = "2.0";
 const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
 P8PLATFORM::CMutex TeleBoy::sendEpgToKodiMutex;
+static const std::string user_agent = std::string("Kodi/")
+    + std::string(STR(KODI_VERSION)) + std::string(" pvr.teleboy/")
+    + std::string(STR(TELEBOY_VERSION)) + std::string(" (Kodi PVR addon)");
+
+
+std::string TeleBoy::HttpGetCached(Curl &curl, const std::string& url, time_t cacheDuration)
+{
+
+  std::string content;
+  std::string cacheKey = md5(url);
+  if (!Cache::Read(cacheKey, content))
+  {
+    content = HttpGet(curl, url);
+    if (!content.empty())
+    {
+      time_t validUntil;
+      time(&validUntil);
+      validUntil += cacheDuration;
+      Cache::Write(cacheKey, content, validUntil);
+    }
+  }
+  return content;
+}
 
 string TeleBoy::HttpGet(Curl &curl, string url)
 {
@@ -43,6 +68,7 @@ string TeleBoy::HttpPost(Curl &curl, string url, string postData)
 string TeleBoy::HttpRequest(Curl &curl, string action, string url,
     string postData)
 {
+  curl.AddHeader("User-Agent", user_agent);
   int statusCode;
   XBMC->Log(LOG_DEBUG, "Http-Request: %s %s.", action.c_str(), url.c_str());
   string content;
@@ -88,11 +114,16 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
   return false;
 }
 
-bool TeleBoy::ApiGet(string url, Document &doc)
+bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
 {
   Curl curl;
   ApiSetHeader(curl);
-  string content = HttpGet(curl, apiUrl + url);
+  string content;
+  if (timeout > 0) {
+    content = HttpGetCached(curl, apiUrl + url, timeout);
+  } else {
+    content = HttpGet(curl, apiUrl + url);
+  }
   curl.ResetHeaders();
   return ApiGetResult(content, doc);
 }
@@ -123,6 +154,7 @@ TeleBoy::TeleBoy(bool favoritesOnly, bool enableDolby) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         ""), isPlusMember(false), isComfortMember(false)
 {
+  XBMC->Log(LOG_NOTICE, "Using useragent: %s", user_agent.c_str());
   ReadDataJson();
   for (int i = 0; i < 5; ++i)
   {
@@ -237,7 +269,7 @@ void TeleBoy::GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 void TeleBoy::LoadGenres()
 {
   Document json;
-  if (!ApiGet("/epg/genres", json))
+  if (!ApiGet("/epg/genres", json, 3600))
   {
     XBMC->Log(LOG_ERROR, "Error loading genres.");
     return;
@@ -273,7 +305,7 @@ void TeleBoy::LoadGenres()
 bool TeleBoy::LoadChannels()
 {
   Document json;
-  if (!ApiGet("/epg/stations?expand=logos&language=de", json))
+  if (!ApiGet("/epg/stations?expand=logos&language=de", json, 3600))
   {
     XBMC->Log(LOG_ERROR, "Error loading channels.");
     return false;
@@ -295,7 +327,7 @@ bool TeleBoy::LoadChannels()
     channelsById[channel.id] = channel;
   }
 
-  if (!ApiGet("/users/" + userId + "/stations", json))
+  if (!ApiGet("/users/" + userId + "/stations", json, 3600))
   {
     XBMC->Log(LOG_ERROR, "Error loading sorted channels.");
     return false;
@@ -365,7 +397,7 @@ string TeleBoy::GetChannelStreamUrl(int uniqueId)
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/live/" + to_string(uniqueId)
-          + "?expand=primary_image,flags&https=1" + GetStreamParameters(), json))
+          + "?expand=primary_image,flags&https=1" + GetStreamParameters(), json, 0))
   {
     XBMC->Log(LOG_ERROR, "Error getting live stream url for channel %i.",
         uniqueId);
@@ -413,10 +445,10 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
   {
     Document json;
     if (!ApiGet(
-        "/users/" + userId + "/broadcasts?begin=" + formatDateTime(iStart)
-            + "&end=" + formatDateTime(iEnd) + "&expand=logos&limit=500&skip="
+        "/users/" + userId + "/broadcasts?begin=" + FormatDate(iStart)
+            + "+00:00:00&end=" + FormatDate(iEnd + 60 * 60 * 24) + "+00:00:00&expand=logos&limit=500&skip="
             + to_string(sum) + "&sort=station&station="
-            + to_string(uniqueChannelId), json))
+            + to_string(uniqueChannelId), json, 60*60*24))
     {
       XBMC->Log(LOG_ERROR, "Error getting epg for channel %i.",
           uniqueChannelId);
@@ -484,12 +516,12 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
   return;
 }
 
-string TeleBoy::formatDateTime(time_t dateTime)
+string TeleBoy::FormatDate(time_t dateTime)
 {
   char buff[20];
   struct tm tm;
   gmtime_r(&dateTime, &tm);
-  strftime(buff, 20, "%Y-%m-%d+%H:%M:%S", &tm);
+  strftime(buff, 20, "%Y-%m-%d", &tm);
   return buff;
 }
 
@@ -526,7 +558,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
     Document json;
     if (!ApiGet(
         "/users/" + userId + "/recordings/" + type
-            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json))
+            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 0))
     {
       XBMC->Log(LOG_ERROR, "Error getting recordings of type %s.",
           type.c_str());
@@ -585,7 +617,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
 string TeleBoy::GetRecordingStreamUrl(string recordingId)
 {
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?" + GetStreamParameters(), json))
+  if (!ApiGet("/users/" + userId + "/stream/" + recordingId + "?" + GetStreamParameters(), json, 0))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for recording: %s.",
         recordingId.c_str());
@@ -620,7 +652,7 @@ string TeleBoy::GetEpgTagUrl(const EPG_TAG *tag)
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/"+ to_string(tag->iUniqueBroadcastId) + "?" + GetStreamParameters()
-          , json))
+          , json, 0))
   {
     XBMC->Log(LOG_ERROR, "Could not get URL for epg tag.");
     return "";
