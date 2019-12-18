@@ -34,8 +34,6 @@ public:
   TeleBoy(bool favoritesOnly, bool enableDolby);
   virtual ~TeleBoy();
   virtual bool Login(string u, string p);
-  void LoadGenres();
-  virtual bool LoadChannels();
   virtual void GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities);
   virtual int GetChannelsAmount(void);
   virtual PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
@@ -88,4 +86,6 @@ private:
   bool WriteDataJson();
   bool ReadDataJson();
   std::string GetStreamParameters();
+  void LoadGenres();
+  bool LoadChannels();
 };
