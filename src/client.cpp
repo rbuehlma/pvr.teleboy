@@ -98,22 +98,23 @@ ADDON_STATUS ADDON_Create(void *hdl, void *props)
   teleboyUsername = "";
   teleboyPassword = "";
   ADDON_ReadSettings();
+  
+  if (teleboyUsername.empty() || teleboyPassword.empty()) {
+    XBMC->Log(LOG_NOTICE, "Username or password not set.");
+    XBMC->QueueNotification(QUEUE_WARNING, XBMC->GetLocalizedString(30100));
+    return m_CurStatus;
+  }
+  
   XBMC->Log(LOG_DEBUG, "Create Teleboy");
-    teleboy = new TeleBoy(teleboyFavoritesOnly, teleboyEnableDolby);
-    XBMC->Log(LOG_DEBUG, "Teleboy created");
-    if (!teleboyUsername.empty() && !teleboyPassword.empty()) {
-      XBMC->Log(LOG_DEBUG, "Login Teleboy");
-      if (teleboy->Login(teleboyUsername, teleboyPassword)) {
-        XBMC->Log(LOG_DEBUG, "Login done");
-        teleboy->LoadChannels();
-        teleboy->LoadGenres();
-        m_CurStatus = ADDON_STATUS_OK;
-      } else {
-        XBMC->Log(LOG_ERROR, "Login failed");
-        XBMC->QueueNotification(QUEUE_ERROR,  XBMC->GetLocalizedString(37111));
-      }
-    }
-
+  teleboy = new TeleBoy(teleboyFavoritesOnly, teleboyEnableDolby);
+  XBMC->Log(LOG_DEBUG, "Login Teleboy");
+  if (teleboy->Login(teleboyUsername, teleboyPassword)) {
+    XBMC->Log(LOG_DEBUG, "Login done");
+    m_CurStatus = ADDON_STATUS_OK;
+  } else {
+    XBMC->Log(LOG_ERROR, "Login failed");
+    XBMC->QueueNotification(QUEUE_ERROR, XBMC->GetLocalizedString(30101));
+  }
 
   return m_CurStatus;
 }
