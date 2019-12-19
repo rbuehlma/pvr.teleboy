@@ -156,10 +156,6 @@ TeleBoy::TeleBoy(bool favoritesOnly, bool enableDolby) :
 {
   XBMC->Log(LOG_NOTICE, "Using useragent: %s", user_agent.c_str());
   ReadDataJson();
-  for (int i = 0; i < 5; ++i)
-  {
-    updateThreads.emplace_back(new UpdateThread(this));
-  }
   this->favoritesOnly = favoritesOnly;
   this->enableDolby = enableDolby;
 }
@@ -257,6 +253,14 @@ bool TeleBoy::Login(string u, string p)
   isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;
   XBMC->Log(LOG_DEBUG, "Got userId: %s.", userId.c_str());
+  
+  for (int i = 0; i < 3; ++i)
+  {
+    updateThreads.emplace_back(new UpdateThread(this));
+  }
+  
+  LoadChannels();
+  LoadGenres();
   return true;
 }
 
@@ -558,7 +562,7 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
     Document json;
     if (!ApiGet(
         "/users/" + userId + "/recordings/" + type
-            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 0))
+            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 10))
     {
       XBMC->Log(LOG_ERROR, "Error getting recordings of type %s.",
           type.c_str());
