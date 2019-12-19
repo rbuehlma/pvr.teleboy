@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.3.7"
+       version="19.3.8"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -26,6 +26,8 @@
     <disclaimer lang="en_US">The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects..</disclaimer>
     <platform>@PLATFORM@</platform>
     <news>
+v19.3.8
+ - Load recordings only when addon is ready
 v19.3.7
  - Init update threads after login
  - Fix error messages
@@ -60,6 +62,8 @@ v19.1.0
  - Update to GUI addon API v5.14.0
 v19.0.0
  - Update to PVR addon API v6.0.0
+v18.1.8
+ - Load recordings only when addon is ready
 v18.1.7
  - Init update threads after login
  - Fix error messages

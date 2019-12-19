@@ -399,7 +399,7 @@ PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
   }
   PVR_ERROR ret = PVR_ERROR_SERVER_ERROR; 
   runningRequests++;
-  if (teleboy)
+  if (teleboy && m_CurStatus == ADDON_STATUS_OK)
   {
     teleboy->GetRecordings(handle, "ready");
     ret = PVR_ERROR_NO_ERROR;
@@ -417,7 +417,7 @@ PVR_ERROR GetTimers(ADDON_HANDLE handle)
 {
   PVR_ERROR ret = PVR_ERROR_SERVER_ERROR;
   runningRequests++;
-  if (teleboy)
+  if (teleboy && m_CurStatus == ADDON_STATUS_OK)
   {
     teleboy->GetRecordings(handle, "planned");
     ret = PVR_ERROR_NO_ERROR;
