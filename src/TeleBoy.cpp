@@ -252,6 +252,11 @@ bool TeleBoy::Login(string u, string p)
   isPlusMember = result.find("setIsPlusMember(1", endPos) != std::string::npos;
   isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;
+  if (!isPlusMember) {
+    XBMC->Log(LOG_NOTICE, "Free accounts are not supported.", userId.c_str());
+    XBMC->QueueNotification(QUEUE_ERROR, XBMC->GetLocalizedString(30102));
+    return false;
+  }
   XBMC->Log(LOG_DEBUG, "Got userId: %s.", userId.c_str());
   
   for (int i = 0; i < 3; ++i)
