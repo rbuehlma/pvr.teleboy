@@ -36,3 +36,7 @@ msgctxt "#30101"
 msgid "Login failed!"
 msgstr "Login failed!"
 
+msgctxt "#30102"
+msgid "Free accounts are not supported!"
+msgstr "Free accounts are not supported!"
+
