@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.4.0"
+       version="19.4.1"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -26,6 +26,8 @@
     <disclaimer lang="en_US">The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects..</disclaimer>
     <platform>@PLATFORM@</platform>
     <news>
+v19.4.1
+ - Set genre on (planned) recordings
 v19.4.0
  - Disable addon for free accounts
 v19.3.8
@@ -64,6 +66,8 @@ v19.1.0
  - Update to GUI addon API v5.14.0
 v19.0.0
  - Update to PVR addon API v6.0.0
+v18.2.1
+ - Set genre on (planned) recordings
 v18.2.0
  - Disable addon for free accounts
 v18.1.8

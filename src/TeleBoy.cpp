@@ -594,6 +594,16 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
         tag.iTimerType = 1;
         tag.iEpgUid = item["id"].GetInt();
         tag.iClientChannelUid = item["station_id"].GetInt();
+        if (item.HasMember("genre_id")) {
+          int genreId = item["genre_id"].GetInt();
+          TeleboyGenre genre = genresById[genreId];
+          int kodiGenre = m_categories.Category(genre.nameEn);
+          if (kodiGenre != 0) {
+            tag.iGenreSubType = kodiGenre & 0x0F;
+            tag.iGenreType = kodiGenre & 0xF0;
+          }
+        }
+        
         PVR->TransferTimerEntry(handle, &tag);
         UpdateThread::SetNextRecordingUpdate(tag.endTime + 60 * 21);
 
@@ -615,6 +625,19 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
         time_t endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
         tag.iDuration = endTime - tag.recordingTime;
         tag.iEpgEventId = item["id"].GetInt();
+        if (item.HasMember("genre_id")) {
+          int genreId = item["genre_id"].GetInt();
+          TeleboyGenre genre = genresById[genreId];
+          int kodiGenre = m_categories.Category(genre.nameEn);
+          if (kodiGenre == 0) {
+            tag.iGenreType = EPG_GENRE_USE_STRING;
+            tag.iGenreSubType = 0;
+            PVR_STRCPY(tag.strGenreDescription, genre.name.c_str());
+          } else {
+            tag.iGenreSubType = kodiGenre & 0x0F;
+            tag.iGenreType = kodiGenre & 0xF0;
+          }
+        }
 
         PVR->TransferRecordingEntry(handle, &tag);
       }
