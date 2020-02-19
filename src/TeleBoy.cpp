@@ -765,6 +765,6 @@ bool TeleBoy::WriteDataJson()
 
 std::string TeleBoy::GetStreamParameters() {
   std::string params = enableDolby ? "&dolby=1" : "";
-  params += "&streamformat=dash";
+  params += "&https=1&streamformat=dash";
   return params;
 }
