@@ -495,10 +495,10 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.iParentalRating = 0; /* not supported */
       tag.iStarRating = 0; /* not supported */
       tag.iSeriesNumber =
-          item.HasMember("serie_season") ? item["serie_season"].GetInt() : 0;
+          item.HasMember("serie_season") ? item["serie_season"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE;
       tag.iEpisodeNumber =
-          item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : 0;
-      tag.iEpisodePartNumber = 0; /* not supported */
+          item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE;
+      tag.iEpisodePartNumber = EPG_TAG_INVALID_SERIES_EPISODE; /* not supported */
       tag.strEpisodeName = strdup(GetStringOrEmpty(item, "subtitle").c_str());
       if (item.HasMember("genre_id")) {
         int genreId = item["genre_id"].GetInt();
@@ -612,6 +612,8 @@ void TeleBoy::GetRecordings(ADDON_HANDLE handle, string type)
       {
         PVR_RECORDING tag;
         memset(&tag, 0, sizeof(PVR_RECORDING));
+        tag.iSeriesNumber = PVR_RECORDING_INVALID_SERIES_EPISODE;
+        tag.iEpisodeNumber = PVR_RECORDING_INVALID_SERIES_EPISODE;
         tag.bIsDeleted = false;
         PVR_STRCPY(tag.strRecordingId, to_string(item["id"].GetInt()).c_str());
         PVR_STRCPY(tag.strTitle, GetStringOrEmpty(item, "title").c_str());
