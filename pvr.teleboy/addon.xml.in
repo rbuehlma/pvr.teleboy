@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.4.3"
+       version="19.4.4"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,11 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.4.4
+ - Update Debian build code
+ - Minor cleanups
+ - Add license name and source url to addon.xml
+ - Add GPL2 license file and show GPL2 on README.md
 v19.4.3
  - Update PVR API 6.2.0
 v19.4.2
