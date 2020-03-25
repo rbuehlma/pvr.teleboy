@@ -5,7 +5,7 @@ Source: https://github.com/rbuehlma/pvr.teleboy
 Files: *
 Copyright: 2016-2017 rbuehlma
            2016-2017 trummerjo
-           2005-2013 Team XBMC
+           2005-2020 Team Kodi
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -50,7 +50,8 @@ License: dual-licensed
  http://www.pulse-eight.net/
 
 Files: debian/*
-Copyright: 2015 Jean-Luc Barriere
+Copyright: 2020 Team Kodi
+           2015 Jean-Luc Barriere
            2015 wsnipex <wsnipex@a1.net>
            2017 rbuehlma
 License: GPL-2+
