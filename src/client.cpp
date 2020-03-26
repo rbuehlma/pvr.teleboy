@@ -568,6 +568,11 @@ int GetRecordingLastPlayedPosition(const PVR_RECORDING &recording)
 	return -1;
 }
 
+PVR_ERROR GetRecordingSize(const PVR_RECORDING* recording, int64_t* sizeInBytes)
+{
+  return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
 /** UNUSED API FUNCTIONS */
 bool CanPauseStream(void)
 {
