@@ -346,7 +346,7 @@ void setStreamProperty(PVR_NAMED_VALUE* properties, unsigned int* propertiesCoun
 void setStreamProperties(PVR_NAMED_VALUE* properties, unsigned int* propertiesCount, std::string url)
 {
   setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_STREAMURL, url);
-  setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_INPUTSTREAMADDON, "inputstream.adaptive");
+  setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_INPUTSTREAM, "inputstream.adaptive");
   setStreamProperty(properties, propertiesCount, "inputstream.adaptive.manifest_type", "mpd");
   setStreamProperty(properties, propertiesCount, "inputstream.adaptive.manifest_update_parameter", "full");
   setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_MIMETYPE, "application/xml+dash");
