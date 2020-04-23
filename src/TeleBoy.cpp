@@ -154,7 +154,7 @@ TeleBoy::TeleBoy(bool favoritesOnly, bool enableDolby) :
     username(""), password(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
         ""), isPlusMember(false), isComfortMember(false)
 {
-  XBMC->Log(LOG_NOTICE, "Using useragent: %s", user_agent.c_str());
+  XBMC->Log(LOG_INFO, "Using useragent: %s", user_agent.c_str());
   ReadDataJson();
   this->favoritesOnly = favoritesOnly;
   this->enableDolby = enableDolby;
@@ -187,7 +187,7 @@ bool TeleBoy::Login(string u, string p)
     string location = curl.GetLocation();
     if (location.find("t.teleboy.ch") != string::npos)
     {
-      XBMC->Log(LOG_NOTICE, "Using t.teleboy.ch.");
+      XBMC->Log(LOG_INFO, "Using t.teleboy.ch.");
       tbUrl = "https://t.teleboy.ch";
       HttpGet(curl, tbUrl + "/login");
     }
@@ -253,7 +253,7 @@ bool TeleBoy::Login(string u, string p)
   isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;
   if (!isPlusMember) {
-    XBMC->Log(LOG_NOTICE, "Free accounts are not supported.", userId.c_str());
+    XBMC->Log(LOG_INFO, "Free accounts are not supported.", userId.c_str());
     XBMC->QueueNotification(QUEUE_ERROR, XBMC->GetLocalizedString(30102));
     return false;
   }
