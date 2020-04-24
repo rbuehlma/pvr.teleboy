@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.4.6"
+       version="19.4.7"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,9 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.4.7
+ - Fix cache cleanup
+ - Prevent log flooding about missing categories
 v19.4.6
  - Rebuild of 19.4.5
 v19.4.5
@@ -86,6 +89,9 @@ v19.1.0
  - Update to GUI addon API v5.14.0
 v19.0.0
  - Update to PVR addon API v6.0.0
+v18.2.3
+ - Fix cache cleanup
+ - Prevent log flooding about missing categories
 v18.2.2
  - Fix replay of currently running program
  - Do not show cache parse error if file has been removed

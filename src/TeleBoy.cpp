@@ -261,7 +261,7 @@ bool TeleBoy::Login(string u, string p)
   
   for (int i = 0; i < 3; ++i)
   {
-    updateThreads.emplace_back(new UpdateThread(this));
+    updateThreads.emplace_back(new UpdateThread(i, this));
   }
   
   LoadChannels();
