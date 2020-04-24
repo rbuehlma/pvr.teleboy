@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.4.7"
+       version="19.4.8"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -25,13 +25,16 @@
     <disclaimer lang="en_NZ">The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects..</disclaimer>
     <disclaimer lang="en_US">The authors are in no way responsible for failed recordings, incorrect timers, wasted hours, or any other undesirable effects..</disclaimer>
     <platform>@PLATFORM@</platform>
-    <license>GPL-2.0</license>
+    <license>GPL-2.0-or-later</license>
     <source>https://github.com/rbuehlma/pvr.teleboy</source>
     <assets>
       <icon>icon.png</icon>
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.4.8
+- Update PVR API 6.4.0
+- Correct license name on addon.xml
 v19.4.7
  - Fix cache cleanup
  - Prevent log flooding about missing categories
