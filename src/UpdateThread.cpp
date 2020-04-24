@@ -2,6 +2,7 @@
 #include <time.h>
 #include "client.h"
 #include "TeleBoy.h"
+#include "Cache.h"
 
 using namespace ADDON;
 
@@ -11,8 +12,9 @@ std::queue<EpgQueueEntry> UpdateThread::loadEpgQueue;
 time_t UpdateThread::nextRecordingsUpdate;
 P8PLATFORM::CMutex UpdateThread::mutex;
 
-UpdateThread::UpdateThread(void *teleboy) :
-    CThread()
+UpdateThread::UpdateThread(int threadIdx, void *teleboy) :
+    CThread(),
+    m_threadIdx(threadIdx)
 {
   this->teleboy = teleboy;
   time(&UpdateThread::nextRecordingsUpdate);
@@ -69,14 +71,18 @@ void* UpdateThread::Process()
     {
       continue;
     }
+    
+    if (m_threadIdx == 0) {
+      Cache::Cleanup();
+    }
 
-    if (!loadEpgQueue.empty())
+    while (!loadEpgQueue.empty())
     {
       if (!mutex.Lock())
       {
         XBMC->Log(LOG_ERROR,
             "UpdateThread::Process : Could not lock mutex for epg queue");
-        continue;
+        break;
       }
       if (!loadEpgQueue.empty())
       {
@@ -91,7 +97,7 @@ void* UpdateThread::Process()
         mutex.Unlock();
       }
     }
-
+    
     time_t currentTime;
     time(&currentTime);
 
@@ -114,12 +120,12 @@ void* UpdateThread::Process()
       }
       else
       {
-          mutex.Unlock();
+        mutex.Unlock();
       }
     }
   }
 
   XBMC->Log(LOG_DEBUG, "Update thread stopped.");
-  return 0;
+  return nullptr;
 }
 
