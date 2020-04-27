@@ -204,7 +204,7 @@ void OnPowerSavingDeactivated()
 {
 }
 
-PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
+PVR_ERROR GetCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
   pCapabilities->bSupportsEPG = true;
   pCapabilities->bSupportsTV = true;
@@ -221,7 +221,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
   runningRequests++;
   if (teleboy)
   {
-    teleboy->GetAddonCapabilities(pCapabilities);
+    teleboy->GetCapabilities(pCapabilities);
   }
   runningRequests--;
   return PVR_ERROR_NO_ERROR;

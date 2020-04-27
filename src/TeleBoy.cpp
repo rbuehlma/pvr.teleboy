@@ -269,7 +269,7 @@ bool TeleBoy::Login(string u, string p)
   return true;
 }
 
-void TeleBoy::GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
+void TeleBoy::GetCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
   pCapabilities->bSupportsRecordings = true;
   pCapabilities->bSupportsTimers = true;
