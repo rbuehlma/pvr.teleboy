@@ -699,7 +699,7 @@ PVR_ERROR SetEPGTimeFrame(int)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*)
+PVR_ERROR GetDescrambleInfo(int channelUid, PVR_DESCRAMBLE_INFO*)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -715,7 +715,7 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+PVR_ERROR GetSignalStatus(int channelUid, PVR_SIGNAL_STATUS *signalStatus)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
