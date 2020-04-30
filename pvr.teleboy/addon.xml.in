@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.4.8"
+       version="19.4.9"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,8 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.4.9
+- Update PVR API 6.5.0
 v19.4.8
 - Update PVR API 6.4.0
 - Correct license name on addon.xml
