@@ -1,7 +1,6 @@
 #include "client.h"
 #include "TeleBoy.h"
 #include "kodi/xbmc_pvr_dll.h"
-#include "kodi/libKODI_guilib.h"
 #include <chrono>
 #include <thread>
 
@@ -69,7 +68,7 @@ ADDON_STATUS ADDON_Create(void *hdl, void *props)
     return ADDON_STATUS_UNKNOWN;
   }
 
-  PVR_PROPERTIES *pvrprops = (PVR_PROPERTIES *) props;
+  AddonProperties_PVR *pvrprops = (AddonProperties_PVR *) props;
 
   XBMC = new CHelper_libXBMC_addon;
   XBMC->RegisterMe(hdl);
@@ -205,7 +204,7 @@ void OnPowerSavingDeactivated()
 {
 }
 
-PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
+PVR_ERROR GetCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
   pCapabilities->bSupportsEPG = true;
   pCapabilities->bSupportsTV = true;
@@ -222,7 +221,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
   runningRequests++;
   if (teleboy)
   {
-    teleboy->GetAddonCapabilities(pCapabilities);
+    teleboy->GetCapabilities(pCapabilities);
   }
   runningRequests--;
   return PVR_ERROR_NO_ERROR;
@@ -700,7 +699,7 @@ PVR_ERROR SetEPGTimeFrame(int)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR GetDescrambleInfo(PVR_DESCRAMBLE_INFO*)
+PVR_ERROR GetDescrambleInfo(int channelUid, PVR_DESCRAMBLE_INFO*)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
@@ -716,7 +715,7 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }
-PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+PVR_ERROR GetSignalStatus(int channelUid, PVR_SIGNAL_STATUS *signalStatus)
 {
   return PVR_ERROR_NOT_IMPLEMENTED;
 }

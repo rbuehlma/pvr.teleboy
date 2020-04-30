@@ -34,7 +34,7 @@ public:
   TeleBoy(bool favoritesOnly, bool enableDolby);
   virtual ~TeleBoy();
   virtual bool Login(string u, string p);
-  virtual void GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities);
+  virtual void GetCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities);
   virtual int GetChannelsAmount(void);
   virtual PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio);
   virtual void TransferChannel(ADDON_HANDLE handle, TeleBoyChannel channel,
