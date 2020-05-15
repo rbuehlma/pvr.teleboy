@@ -34,6 +34,7 @@ std::string teleboyPassword = "";
 bool teleboyFavoritesOnly = false;
 bool teleboyEnableDolby = true;
 int runningRequests = 0;
+bool isLivePlayback = false;
 
 extern "C"
 {
@@ -364,6 +365,7 @@ PVR_ERROR GetChannelStreamProperties(const PVR_CHANNEL* channel,
     setStreamProperties(properties, propertiesCount, strUrl);
     setStreamProperty(properties, propertiesCount, PVR_STREAM_PROPERTY_ISREALTIMESTREAM, "true");
     ret = PVR_ERROR_NO_ERROR;
+    isLivePlayback = true;
   }
   runningRequests--;
   return ret;
@@ -380,6 +382,7 @@ PVR_ERROR GetRecordingStreamProperties(const PVR_RECORDING* recording,
     *propertiesCount = 0;
     setStreamProperties(properties, propertiesCount, strUrl);
     ret = PVR_ERROR_NO_ERROR;
+    isLivePlayback = false;
   }
   runningRequests--;
   return ret;
@@ -538,6 +541,7 @@ PVR_ERROR GetEPGTagStreamProperties(const EPG_TAG* tag,
     *iPropertiesCount = 0;
     setStreamProperties(properties, iPropertiesCount, strUrl);
     ret = PVR_ERROR_NO_ERROR;
+    isLivePlayback = false;
   }
   runningRequests--;
   return ret;
@@ -668,7 +672,7 @@ bool IsTimeshifting(void)
 }
 bool IsRealTimeStream(void)
 {
-  return true;
+  return isLivePlayback;
 }
 void PauseStream(bool bPaused)
 {
