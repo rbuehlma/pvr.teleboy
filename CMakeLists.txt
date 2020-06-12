@@ -18,7 +18,6 @@ set(DEPLIBS ${p8-platform_LIBRARIES}
 
 set(TELEBOY_SOURCES
 		src/Utils.cpp
-		src/client.cpp
 		src/Curl.cpp
 		src/md5.cpp
 		src/Cache.cpp
@@ -32,10 +31,10 @@ set(TELEBOY_HEADERS
 		src/md5.h
 		src/Cache.h
 		src/UpdateThread.h
-		src/client.h
 		src/TeleBoy.h
 		src/to_string.h
 		src/Utils.h
+		src/windows.h
 		src/categories.h
 )
 
