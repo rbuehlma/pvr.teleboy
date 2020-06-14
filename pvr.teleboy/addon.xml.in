@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.5.0"
+       version="19.6.0"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
     @ADDON_DEPENDS@
     <import addon="inputstream.adaptive" minversion="2.4.2"/>
   </requires>
-  <extension point="xbmc.pvrclient" library_@PLATFORM@="@LIBRARY_FILENAME@"/>
+  <extension point="kodi.pvrclient" library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
     <summary lang="de_DE">Kodi-PVR-Client für Teleboy</summary>
     <summary lang="en_AU">Kodi's frontend for Teleboy</summary>
@@ -32,6 +32,9 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.6.0
+ - Update PVR API 7.0.0
+ - Major changes to match new API
 v19.5.0
 - Update PVR API 6.5.1
 - Update Global API 1.2.0

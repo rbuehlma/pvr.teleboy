@@ -1,22 +1,11 @@
 #include "Cache.h"
-#include "client.h"
 #include "Utils.h"
-#include "libXBMC_addon.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-#ifdef TARGET_WINDOWS
-#include <windows.h>
-#ifdef CreateDirectory
-#undef CreateDirectory
-#endif
-#ifdef DeleteFile
-#undef DeleteFile
-#endif
-#endif
+#include "kodi/Filesystem.h"
 
 using namespace rapidjson;
-using namespace ADDON;
 
 constexpr char CACHE_DIR[] = "special://profile/addon_data/pvr.teleboy/cache/";
 
@@ -25,7 +14,7 @@ time_t Cache::m_lastCleanup = 0;
 bool Cache::Read(const std::string& key, std::string& data)
 {
   std::string cacheFile = CACHE_DIR + key;
-  if (!XBMC->FileExists(cacheFile.c_str(), true))
+  if (!kodi::vfs::FileExists(cacheFile, true))
   {
     return false;
   }
@@ -38,40 +27,40 @@ bool Cache::Read(const std::string& key, std::string& data)
   doc.Parse(jsonString.c_str());
   if (doc.GetParseError())
   {
-    if (XBMC->FileExists(cacheFile.c_str(), true))
+    if (kodi::vfs::FileExists(cacheFile.c_str(), true))
     {
-      XBMC->Log(LOG_ERROR, "Parsing cache file [%s] failed.", cacheFile.c_str());
+      kodi::Log(ADDON_LOG_ERROR, "Parsing cache file [%s] failed.", cacheFile.c_str());
     }
     return false;
   }
 
   if (!IsStillValid(doc))
   {
-    XBMC->Log(LOG_DEBUG, "Ignoring cache file [%s] due to expiry.",
+    kodi::Log(ADDON_LOG_DEBUG, "Ignoring cache file [%s] due to expiry.",
         cacheFile.c_str());
     return false;
   }
 
-  XBMC->Log(LOG_DEBUG, "Load from cache file [%s].", cacheFile.c_str());
+  kodi::Log(ADDON_LOG_DEBUG, "Load from cache file [%s].", cacheFile.c_str());
   data = doc["data"].GetString();
   return !data.empty();
 }
 
 void Cache::Write(const std::string& key, const std::string& data, time_t validUntil)
 {
-  if (!XBMC->DirectoryExists(CACHE_DIR))
+  if (!kodi::vfs::DirectoryExists(CACHE_DIR))
   {
-    if (!XBMC->CreateDirectory(CACHE_DIR))
+    if (!kodi::vfs::CreateDirectory(CACHE_DIR))
     {
-      XBMC->Log(LOG_ERROR, "Could not crate cache directory [%s].", CACHE_DIR);
+      kodi::Log(ADDON_LOG_ERROR, "Could not crate cache directory [%s].", CACHE_DIR);
       return;
     }
   }
   std::string cacheFile = CACHE_DIR + key;
-  void* file;
-  if (!(file = XBMC->OpenFileForWrite(cacheFile.c_str(), true)))
+  kodi::vfs::CFile file;
+  if (!file.OpenFileForWrite(cacheFile, true))
   {
-    XBMC->Log(LOG_ERROR, "Could not write to cache file [%s].",
+    kodi::Log(ADDON_LOG_ERROR, "Could not write to cache file [%s].",
         cacheFile.c_str());
     return;
   }
@@ -87,8 +76,7 @@ void Cache::Write(const std::string& key, const std::string& data, time_t validU
   Writer<StringBuffer> writer(buffer);
   d.Accept(writer);
   const char* output = buffer.GetString();
-  XBMC->WriteFile(file, output, strlen(output));
-  XBMC->CloseFile(file);
+  file.Write(output, strlen(output));
 }
 
 void Cache::Cleanup()
@@ -100,24 +88,24 @@ void Cache::Cleanup()
    return;
   }
   m_lastCleanup = currTime;
-  if (!XBMC->DirectoryExists(CACHE_DIR))
+  if (!kodi::vfs::DirectoryExists(CACHE_DIR))
   {
     return;
   }
-  VFSDirEntry *items;
-  unsigned int itemCount;
-  if (!XBMC->GetDirectory(CACHE_DIR, "", &items, &itemCount))
+
+  std::vector<kodi::vfs::CDirEntry> items;
+  if (!kodi::vfs::GetDirectory(CACHE_DIR, "", items))
   {
-    XBMC->Log(LOG_ERROR, "Could not get cache directory.");
+    kodi::Log(ADDON_LOG_ERROR, "Could not get cache directory.");
     return;
   }
-  for (unsigned int i = 0; i < itemCount; i++)
+  for (const auto& item : items)
   {
-    if (items[i].folder)
+    if (item.IsFolder())
     {
       continue;
     }
-    char *path = items[i].path;
+    std::string path = item.Path();
     std::string jsonString = Utils::ReadFile(path);
     if (jsonString.empty())
     {
@@ -127,22 +115,19 @@ void Cache::Cleanup()
     doc.Parse(jsonString.c_str());
     if (doc.GetParseError())
     {
-      XBMC->Log(LOG_ERROR, "Parsing cache file [%s] failed. -> Delete", path);
-      XBMC->DeleteFile(path);
+      kodi::Log(ADDON_LOG_ERROR, "Parsing cache file [%s] failed. -> Delete", path.c_str());
+      kodi::vfs::DeleteFile(path);
     }
 
     if (!IsStillValid(doc))
     {
-      XBMC->Log(LOG_DEBUG, "Deleting expired cache file [%s].", path);
-      if (!XBMC->DeleteFile(path))
+      kodi::Log(ADDON_LOG_DEBUG, "Deleting expired cache file [%s].", path.c_str());
+      if (!kodi::vfs::DeleteFile(path))
       {
-        XBMC->Log(LOG_DEBUG, "Deletion of file [%s] failed.", path);
+        kodi::Log(ADDON_LOG_DEBUG, "Deletion of file [%s] failed.", path.c_str());
       }
     }
-
   }
-
-  XBMC->FreeDirectory(items, itemCount);
 }
 
 bool Cache::IsStillValid(const Value& cache)
