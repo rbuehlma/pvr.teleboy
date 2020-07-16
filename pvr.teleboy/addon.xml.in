@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.6.2"
+       version="19.7.0"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,8 +32,10 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.7.0
+ - Update PVR API 7.0.2
 v19.6.2
-- Remove p8 from debian control file
+ - Remove p8 from debian control file
 v19.6.1
  - Remove p8-platform dependency
  - Use std::thread
@@ -44,13 +46,13 @@ v19.6.0
  - Update PVR API 7.0.0
  - Major changes to match new API
 v19.5.0
-- Update PVR API 6.5.1
-- Update Global API 1.2.0
+ - Update PVR API 6.5.1
+ - Update Global API 1.2.0
 v19.4.9
-- Update PVR API 6.5.0
+ - Update PVR API 6.5.0
 v19.4.8
-- Update PVR API 6.4.0
-- Correct license name on addon.xml
+ - Update PVR API 6.4.0
+ - Correct license name on addon.xml
 v19.4.7
  - Fix cache cleanup
  - Prevent log flooding about missing categories
