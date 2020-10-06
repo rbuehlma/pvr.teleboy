@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.6.0"
+       version="19.6.1"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,11 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.6.1
+ - Remove p8-platform dependency
+ - Use std::thread
+ - Use std:mutex
+ - Remove unused p8-platform headers
 v19.6.0
  - Update PVR API 7.0.0
  - Major changes to match new API
@@ -78,7 +83,7 @@ v19.3.5
  - Move changelog to addon metadata
 v19.3.4
  - Use Kodi epg categories
- - Add option to disable Dolby 
+ - Add option to disable Dolby
 v19.3.3
  - Use new stream api for replay and recordings
  - Support Dolby
@@ -124,7 +129,7 @@ v18.1.5
  - Move changelog to addon metadata
 v18.1.4
  - Use Kodi epg categories
- - Add option to disable Dolby 
+ - Add option to disable Dolby
 v18.1.3
  - Use new stream api for replay and recordings
  - Support Dolby

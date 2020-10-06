@@ -9,7 +9,6 @@
 #include <sstream>
 
 #include "kodi/Filesystem.h"
-#include "p8-platform/os.h"
 
 std::string Utils::GetFilePath(std::string strPath, bool bUserPath)
 {

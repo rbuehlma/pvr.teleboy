@@ -74,7 +74,7 @@ private:
   string apiKey;
   map<int, TeleBoyChannel> channelsById;
   map<int, TeleboyGenre> genresById;
-  static P8PLATFORM::CMutex sendEpgToKodiMutex;
+  static std::mutex sendEpgToKodiMutex;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;

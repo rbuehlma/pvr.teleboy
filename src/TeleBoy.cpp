@@ -10,7 +10,6 @@
 #include <iostream>
 #include <string>
 #include <sstream>
-#include "p8-platform/sockets/tcp.h"
 #include <map>
 #include <time.h>
 #include <random>
@@ -31,7 +30,7 @@ static const string apiUrl = "https://tv.api.teleboy.ch";
 static const string apiDeviceType = "desktop";
 static const string apiVersion = "2.0";
 const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
-P8PLATFORM::CMutex TeleBoy::sendEpgToKodiMutex;
+std::mutex TeleBoy::sendEpgToKodiMutex;
 static const std::string user_agent = std::string("Kodi/")
     + std::string(STR(KODI_VERSION)) + std::string(" pvr.teleboy/")
     + std::string(STR(TELEBOY_VERSION)) + std::string(" (Kodi PVR addon)");
@@ -168,7 +167,6 @@ TeleBoy::~TeleBoy()
 {
   for (auto const &updateThread : updateThreads)
   {
-    updateThread->StopThread(200);
     delete updateThread;
   }
 }
@@ -589,10 +587,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
     totals = json["data"]["total"].GetInt();
     const Value& items = json["data"]["items"];
 
-    if (!sendEpgToKodiMutex.Lock()) {
-      kodi::Log(ADDON_LOG_ERROR, "Failed to lock sendEpgToKodiMutex.");
-      return;
-    }
+    std::lock_guard<std::mutex> lock(sendEpgToKodiMutex);
 
     for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
         ++itr1)
@@ -640,7 +635,6 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 
       EpgEventStateChange(tag, EPG_EVENT_CREATED);
     }
-    sendEpgToKodiMutex.Unlock();
     kodi::Log(ADDON_LOG_DEBUG, "Loaded %i of %i epg entries for channel %i.", sum,
         totals, uniqueChannelId);
   }
