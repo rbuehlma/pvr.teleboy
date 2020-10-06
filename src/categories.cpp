@@ -22,7 +22,6 @@
 
 #include "categories.h"
 #include <cstring>
-#include <p8-platform/os.h>
 #include <regex>
 
 #include "kodi/Filesystem.h"
