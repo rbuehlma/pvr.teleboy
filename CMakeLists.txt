@@ -5,15 +5,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 
 find_package(PkgConfig)
 find_package(Kodi REQUIRED)
-find_package(p8-platform REQUIRED)
 find_package(RapidJSON REQUIRED)
 
-include_directories(${p8-platform_INCLUDE_DIRS}
-                    ${KODI_INCLUDE_DIR}
+include_directories(${KODI_INCLUDE_DIR}
                     ${RAPIDJSON_INCLUDE_DIRS}
-)
-
-set(DEPLIBS ${p8-platform_LIBRARIES}
 )
 
 set(TELEBOY_SOURCES
