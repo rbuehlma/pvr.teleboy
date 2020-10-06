@@ -37,6 +37,7 @@ v19.6.1
  - Use std::thread
  - Use std:mutex
  - Remove unused p8-platform headers
+ - Fix saving data.json
 v19.6.0
  - Update PVR API 7.0.0
  - Major changes to match new API

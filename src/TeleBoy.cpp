@@ -967,7 +967,7 @@ bool TeleBoy::ReadDataJson()
 bool TeleBoy::WriteDataJson()
 {
   kodi::vfs::CFile file;
-  if (file.OpenFileForWrite(data_file, true))
+  if (!file.OpenFileForWrite(data_file, true))
   {
     kodi::Log(ADDON_LOG_ERROR, "Save data.json failed.");
     return false;
