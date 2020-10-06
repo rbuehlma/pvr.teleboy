@@ -14,7 +14,6 @@ time_t UpdateThread::nextRecordingsUpdate;
 std::mutex UpdateThread::mutex;
 
 UpdateThread::UpdateThread(int threadIdx, TeleBoy& teleboy) :
-    CThread(),
     m_teleboy(teleboy),
     m_threadIdx(threadIdx)
 {
@@ -56,7 +55,7 @@ void UpdateThread::LoadEpg(int uniqueChannelId, time_t startTime,
   loadEpgQueue.push(entry);
 }
 
-void* UpdateThread::Process()
+void UpdateThread::Process()
 {
   kodi::Log(ADDON_LOG_DEBUG, "Update thread started.");
   while (m_running)

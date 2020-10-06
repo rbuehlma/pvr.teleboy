@@ -167,7 +167,6 @@ TeleBoy::~TeleBoy()
 {
   for (auto const &updateThread : updateThreads)
   {
-    updateThread->StopThread(200);
     delete updateThread;
   }
 }
