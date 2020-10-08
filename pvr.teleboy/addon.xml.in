@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.6.1"
+       version="19.6.2"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,8 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.6.2
+- Remove p8 from debian control file
 v19.6.1
  - Remove p8-platform dependency
  - Use std::thread
