@@ -9,71 +9,58 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: en_GB\n"
+"Language: de_DE\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Setting to set used stream username
 #: pvr.zattoo/resources/settings.xml
 msgctxt "#30000"
 msgid "Username"
-msgstr ""
+msgstr "Benutzername"
 
 #. Setting to set used stream password
 #: pvr.zattoo/resources/settings.xml
 msgctxt "#30001"
 msgid "Password"
-msgstr ""
+msgstr "Passwort"
 
 #. Boolean setting to use favourite streams only
 #: pvr.zattoo/resources/settings.xml
 msgctxt "#30002"
 msgid "Favourite channels only"
-msgstr ""
+msgstr "Nur favorisierte Kanäle nutzen"
 
 #. Help text to setting #30002
 #: pvr.zattoo/resources/settings.xml
 msgctxt "#30003"
 msgid "Load only channels which are in the favourite list."
-msgstr ""
+msgstr "Lädt nur Kanäle welche in favorisierter Liste enthalten sind."
 
 #. Boolean setting to enable dolby stream usage
 #: pvr.zattoo/resources/settings.xml
 msgctxt "#30004"
 msgid "Enable Dolby"
-msgstr ""
+msgstr "Aktiviere Dolby"
 
 #. Help text to setting #30010
 #: pvr.zattoo/resources/settings.xml
 msgctxt "#30005"
 msgid "Enable support for dolby."
-msgstr ""
-
-#. Settings category label
-#: pvr.zattoo/resources/settings.xml
-msgctxt "#30006"
-msgid "Teleboy"
-msgstr ""
-
-#. Settings group label
-#: pvr.zattoo/resources/settings.xml
-msgctxt "#30007"
-msgid "General"
-msgstr ""
+msgstr "Aktiviert die Unterstützung für Dolby Streams."
 
 #. Notification message to show on screen if username or password not set
 #: src/TeleBoy.cpp
 msgctxt "#30100"
 msgid "Missing username or password"
-msgstr ""
+msgstr "Fehlender Benutzername oder Passwort"
 
 #. Notification message to show on screen if login failed
 #: src/TeleBoy.cpp
 msgctxt "#30101"
 msgid "Login failed!"
-msgstr ""
+msgstr "Anmeldung fehlgeschlagen!"
 
 #. Notification message to show for inform not supported by used account
 msgctxt "#30102"
 msgid "Free accounts are not supported!"
-msgstr ""
-
+msgstr "Freie Konten nicht Verfügbar!"
