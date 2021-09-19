@@ -48,6 +48,18 @@ msgctxt "#30005"
 msgid "Enable support for dolby."
 msgstr ""
 
+#. Settings category label
+#: pvr.zattoo/resources/settings.xml
+msgctxt "#30006"
+msgid "Teleboy"
+msgstr ""
+
+#. Settings group label
+#: pvr.zattoo/resources/settings.xml
+msgctxt "#30007"
+msgid "General"
+msgstr ""
+
 #. Notification message to show on screen if username or password not set
 #: src/TeleBoy.cpp
 msgctxt "#30100"
