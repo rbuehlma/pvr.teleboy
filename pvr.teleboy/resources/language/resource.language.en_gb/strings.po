@@ -12,31 +12,56 @@ msgstr ""
 "Language: en_GB\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#. Setting to set used stream username
+#: pvr.zattoo/resources/settings.xml
 msgctxt "#30000"
 msgid "Username"
-msgstr "Username"
+msgstr ""
 
+#. Setting to set used stream password
+#: pvr.zattoo/resources/settings.xml
 msgctxt "#30001"
 msgid "Password"
-msgstr "Password"
+msgstr ""
 
+#. Boolean setting to use favourite streams only
+#: pvr.zattoo/resources/settings.xml
 msgctxt "#30002"
 msgid "Favourite channels only"
-msgstr "Load only channels which are in the favourite list"
+msgstr ""
 
+#. Help text to setting #30002
+#: pvr.zattoo/resources/settings.xml
 msgctxt "#30003"
-msgid "Enable Dolby"
-msgstr "Enable support for dolby"
+msgid "Load only channels which are in the favourite list."
+msgstr ""
 
+#. Boolean setting to enable dolby stream usage
+#: pvr.zattoo/resources/settings.xml
+msgctxt "#30004"
+msgid "Enable Dolby"
+msgstr ""
+
+#. Help text to setting #30010
+#: pvr.zattoo/resources/settings.xml
+msgctxt "#30005"
+msgid "Enable support for dolby."
+msgstr ""
+
+#. Notification message to show on screen if username or password not set
+#: src/TeleBoy.cpp
 msgctxt "#30100"
 msgid "Missing username or password"
-msgstr "Missing username or password"
+msgstr ""
 
+#. Notification message to show on screen if login failed
+#: src/TeleBoy.cpp
 msgctxt "#30101"
 msgid "Login failed!"
-msgstr "Login failed!"
+msgstr ""
 
+#. Notification message to show for inform not supported by used account
 msgctxt "#30102"
 msgid "Free accounts are not supported!"
-msgstr "Free accounts are not supported!"
+msgstr ""
 
