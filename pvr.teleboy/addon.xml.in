@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.8.1"
+       version="20.0.0"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,8 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v20.0.0
+ - Adapt for Kodi 20 Nexus
 v19.8.1
  - Rework settings.xml to use new format
  - Fix some compile warnings by depends build of rapidjson
