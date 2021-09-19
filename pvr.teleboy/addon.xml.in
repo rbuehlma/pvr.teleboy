@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.8.0"
+       version="19.8.1"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,11 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.8.1
+ - Rework settings.xml to use new format
+ - Fix some compile warnings by depends build of rapidjson
+ - Cleanup language texts in strings.po and addon.xml
+ - Add german translation
 v19.8.0
  - Update PVR API 7.1.0
 v19.7.1
