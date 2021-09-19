@@ -13,49 +13,49 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Setting to set used stream username
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30000"
 msgid "Username"
 msgstr ""
 
 #. Setting to set used stream password
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30001"
 msgid "Password"
 msgstr ""
 
 #. Boolean setting to use favourite streams only
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30002"
 msgid "Favourite channels only"
 msgstr ""
 
 #. Help text to setting #30002
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30003"
 msgid "Load only channels which are in the favourite list."
 msgstr ""
 
 #. Boolean setting to enable dolby stream usage
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30004"
 msgid "Enable Dolby"
 msgstr ""
 
 #. Help text to setting #30010
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30005"
 msgid "Enable support for dolby."
 msgstr ""
 
 #. Settings category label
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30006"
 msgid "Teleboy"
 msgstr ""
 
 #. Settings group label
-#: pvr.zattoo/resources/settings.xml
+#: pvr.teleboy/resources/settings.xml
 msgctxt "#30007"
 msgid "General"
 msgstr ""
