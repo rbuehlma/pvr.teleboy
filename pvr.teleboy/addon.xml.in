@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="20.0.0"
+       version="20.1.0"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -32,6 +32,10 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v20.1.0
+- Kodi PVR API to 8.0.0
+  - Add supports recordings delete capability
+  - Enforce EDL limits
 v20.0.0
  - Adapt for Kodi 20 Nexus
 v19.8.1
