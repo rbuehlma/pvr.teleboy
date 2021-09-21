@@ -90,7 +90,7 @@ string TeleBoy::HttpRequest(Curl &curl, string action, string url,
     content = curl.Get(url, statusCode);
   }
   string cinergys = curl.GetCookie("cinergy_s");
-  if (!cinergys.empty() && cinergys != cinergySCookies)
+  if (!cinergys.empty() && cinergys != cinergySCookies && cinergys != "deleted")
   {
     cinergySCookies = cinergys;
     WriteDataJson();
