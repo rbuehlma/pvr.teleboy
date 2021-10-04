@@ -351,6 +351,7 @@ PVR_ERROR TeleBoy::GetCapabilities(kodi::addon::PVRCapabilities& capabilities)
   capabilities.SetSupportsEPGEdl(true);
   capabilities.SetSupportsRecordingEdl(true);
   capabilities.SetSupportsRecordings(true);
+  capabilities.SetSupportsRecordingsDelete(true);
   capabilities.SetSupportsTimers(true);
 
   return PVR_ERROR_NO_ERROR;
