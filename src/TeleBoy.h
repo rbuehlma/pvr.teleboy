@@ -23,8 +23,8 @@ struct TeleboyGenre
   std::string nameEn;
 };
 
-class ATTRIBUTE_HIDDEN TeleBoy : public kodi::addon::CAddonBase,
-                                 public kodi::addon::CInstancePVRClient
+class ATTR_DLL_LOCAL TeleBoy : public kodi::addon::CAddonBase,
+                               public kodi::addon::CInstancePVRClient
 {
 public:
   TeleBoy();
@@ -32,7 +32,7 @@ public:
 
   ADDON_STATUS Create() override;
   ADDON_STATUS SetSetting(const std::string& settingName,
-                          const kodi::CSettingValue& settingValue) override;
+                          const kodi::addon::CSettingValue& settingValue) override;
 
   PVR_ERROR GetCapabilities(kodi::addon::PVRCapabilities& capabilities) override;
   PVR_ERROR GetBackendName(std::string& name) override;
