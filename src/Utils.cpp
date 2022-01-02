@@ -12,7 +12,7 @@
 
 std::string Utils::GetFilePath(std::string strPath, bool bUserPath)
 {
-  return (bUserPath ? kodi::GetAddonPath(strPath) : kodi::GetBaseUserPath(strPath));
+  return (bUserPath ? kodi::addon::GetAddonPath(strPath) : kodi::addon::GetUserPath(strPath));
 }
 
 // http://stackoverflow.com/a/17708801

@@ -175,15 +175,15 @@ ADDON_STATUS TeleBoy::Create()
 {
   kodi::Log(ADDON_LOG_DEBUG, "%s - Creating the PVR Teleboy add-on", __FUNCTION__);
 
-  favoritesOnly = kodi::GetSettingBoolean("favoritesonly");
-  enableDolby = kodi::GetSettingBoolean("enableDolby");
-  teleboyUsername = kodi::GetSettingString("username");
-  teleboyPassword = kodi::GetSettingString("password");
+  favoritesOnly = kodi::addon::GetSettingBoolean("favoritesonly");
+  enableDolby = kodi::addon::GetSettingBoolean("enableDolby");
+  teleboyUsername = kodi::addon::GetSettingString("username");
+  teleboyPassword = kodi::addon::GetSettingString("password");
 
   if (teleboyUsername.empty() || teleboyPassword.empty())
   {
     kodi::Log(ADDON_LOG_INFO, "Username or password not set.");
-    kodi::QueueNotification(QUEUE_WARNING, "", kodi::GetLocalizedString(30100));
+    kodi::QueueNotification(QUEUE_WARNING, "", kodi::addon::GetLocalizedString(30100));
     return ADDON_STATUS_NEED_SETTINGS;
   }
 
@@ -195,14 +195,14 @@ ADDON_STATUS TeleBoy::Create()
   else
   {
     kodi::Log(ADDON_LOG_ERROR, "Login failed");
-    kodi::QueueNotification(QUEUE_ERROR, "", kodi::GetLocalizedString(30101));
+    kodi::QueueNotification(QUEUE_ERROR, "", kodi::addon::GetLocalizedString(30101));
     return ADDON_STATUS_NEED_SETTINGS;
   }
 
   return ADDON_STATUS_OK;
 }
 
-ADDON_STATUS TeleBoy::SetSetting(const std::string& settingName, const kodi::CSettingValue& settingValue)
+ADDON_STATUS TeleBoy::SetSetting(const std::string& settingName, const kodi::addon::CSettingValue& settingValue)
 {
   if (settingName == "username")
   {
@@ -322,7 +322,7 @@ bool TeleBoy::Login(string u, string p)
       != std::string::npos;
   if (!isPlusMember) {
     kodi::Log(ADDON_LOG_INFO, "Free accounts are not supported.", userId.c_str());
-    kodi::QueueNotification(QUEUE_ERROR, "", kodi::GetLocalizedString(30102));
+    kodi::QueueNotification(QUEUE_ERROR, "", kodi::addon::GetLocalizedString(30102));
     return false;
   }
   kodi::Log(ADDON_LOG_DEBUG, "Got userId: %s.", userId.c_str());
