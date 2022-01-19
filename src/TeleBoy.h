@@ -105,7 +105,7 @@ private:
   std::string GetStreamParameters();
   void LoadGenres();
   bool LoadChannels();
-  void SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties,
-        const std::string& url, bool realtime);
+  PVR_ERROR SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties,
+        const Value& stream, bool realtime);
   void AddTimerType(std::vector<kodi::addon::PVRTimerType>& types, int idx, int attributes);
 };
