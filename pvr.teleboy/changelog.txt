@@ -1,3 +1,5 @@
+v20.2.1
+ - Support drm
 v20.2.0
 - Move news from addon.xml to new changelog.txt
 - Use rapidjson fd3dc29 to become C++17 fixed
@@ -8,6 +10,8 @@ v20.1.0
   - Enforce EDL limits
 v20.0.0
  - Adapt for Kodi 20 Nexus
+v19.8.2
+ - Support drm
 v19.8.1
  - Rework settings.xml to use new format
  - Fix some compile warnings by depends build of rapidjson

@@ -90,7 +90,7 @@ string TeleBoy::HttpRequest(Curl &curl, string action, string url,
     content = curl.Get(url, statusCode);
   }
   string cinergys = curl.GetCookie("cinergy_s");
-  if (!cinergys.empty() && cinergys != cinergySCookies)
+  if (!cinergys.empty() && cinergys != cinergySCookies && cinergys != "deleted")
   {
     cinergySCookies = cinergys;
     WriteDataJson();
@@ -505,20 +505,41 @@ void TeleBoy::TransferChannel(kodi::addon::PVRChannelsResultSet& results, TeleBo
   results.Add(kodiChannel);
 }
 
-void TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties, const std::string& url, bool realtime)
+PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties, const Value& stream, bool realtime)
 {
+  PVR_ERROR ret = PVR_ERROR_FAILED;
+
+  string url = GetStringOrEmpty(stream, "url");
+  kodi::Log(ADDON_LOG_INFO, "Play URL: %s.", url.c_str());
+  url = FollowRedirect(url);
+
+  if (url.empty())
+  {
+    return PVR_ERROR_FAILED;
+  }
+
   properties.emplace_back(PVR_STREAM_PROPERTY_STREAMURL, url);
   properties.emplace_back(PVR_STREAM_PROPERTY_INPUTSTREAM, "inputstream.adaptive");
   properties.emplace_back("inputstream.adaptive.manifest_type", "mpd");
   properties.emplace_back("inputstream.adaptive.manifest_update_parameter", "full");
   properties.emplace_back(PVR_STREAM_PROPERTY_MIMETYPE, "application/xml+dash");
   properties.emplace_back(PVR_STREAM_PROPERTY_ISREALTIMESTREAM, realtime ? "true" : "false");
+      
+  if (stream.HasMember("drm")) {
+    string drmType = GetStringOrEmpty(stream["drm"], "type");
+    if (drmType == "widevine") {
+      string licenseUrl = GetStringOrEmpty(stream["drm"], "license_url");
+      properties.emplace_back("inputstream.adaptive.license_key", licenseUrl + "||A{SSM}|");
+      properties.emplace_back("inputstream.adaptive.license_type", "com.widevine.alpha"); 
+    } else {
+      kodi::Log(ADDON_LOG_ERROR, "Unsupported drm type: %s.", drmType.c_str());
+    }      
+  }
+  return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  PVR_ERROR ret = PVR_ERROR_FAILED;
-
   Document json;
   if (!ApiGet(
       "/users/" + userId + "/stream/live/" + to_string(channel.GetUniqueId())
@@ -526,18 +547,11 @@ PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& cha
   {
     kodi::Log(ADDON_LOG_ERROR, "Error getting live stream url for channel %i.",
         channel.GetUniqueId());
-    return ret;
+    return PVR_ERROR_FAILED;
   }
-  string url = GetStringOrEmpty(json["data"]["stream"], "url");
-  kodi::Log(ADDON_LOG_INFO, "Play URL: %s.", url.c_str());
-  url = FollowRedirect(url);
+  const Value& stream = json["data"]["stream"];
+  return SetStreamProperties(properties, stream, true);
 
-  if (!url.empty())
-  {
-    SetStreamProperties(properties, url, true);
-    ret = PVR_ERROR_NO_ERROR;
-  }
-  return ret;
 }
 
 string TeleBoy::FollowRedirect(string url)
@@ -740,15 +754,8 @@ PVR_ERROR TeleBoy::GetRecordingStreamProperties(const kodi::addon::PVRRecording&
         recording.GetRecordingId().c_str());
     return ret;
   }
-  string url = GetStringOrEmpty(json["data"]["stream"], "url");
-  url = FollowRedirect(url);
-
-  if (!url.empty())
-  {
-    SetStreamProperties(properties, url, false);
-    ret = PVR_ERROR_NO_ERROR;
-  }
-  return ret;
+  const Value& stream = json["data"]["stream"];
+  return SetStreamProperties(properties, stream, false);
 }
 
 PVR_ERROR TeleBoy::GetRecordingEdl(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVREDLEntry>& edl)
@@ -905,14 +912,8 @@ PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, 
     kodi::Log(ADDON_LOG_ERROR, "Could not get URL for epg tag.");
     return ret;
   }
-  string url = GetStringOrEmpty(json["data"]["stream"], "url");
-  url = FollowRedirect(url);
-  if (!url.empty())
-  {
-    SetStreamProperties(properties, url, false);
-    ret = PVR_ERROR_NO_ERROR;
-  }
-  return ret;
+  const Value& stream = json["data"]["stream"];
+  return SetStreamProperties(properties, stream, false);
 }
 
 PVR_ERROR TeleBoy::GetEPGTagEdl(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVREDLEntry>& edl)
