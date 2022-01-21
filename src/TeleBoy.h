@@ -1,9 +1,10 @@
 #include "UpdateThread.h"
-#include "Curl.h"
 #include "categories.h"
 #include <map>
 #include <mutex>
 #include "rapidjson/document.h"
+#include "sql/ParameterDB.h"
+#include "http/HttpClient.h"
 
 #include "kodi/addon-instance/PVR.h"
 
@@ -71,31 +72,24 @@ private:
   bool favoritesOnly;
   bool enableDolby;
   string userId;
-  string apiKey;
   map<int, TeleBoyChannel> channelsById;
   map<int, TeleboyGenre> genresById;
   static std::mutex sendEpgToKodiMutex;
   vector<int> sortedChannels;
   int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;
-  string cinergySCookies;
   bool isPlusMember;
   bool isComfortMember;
   Categories m_categories;
+  ParameterDB *m_parameterDB;
+  HttpClient *m_httpClient;
 
   virtual bool Login(string u, string p);
   virtual string FormatDate(time_t dateTime);
-  virtual string HttpGetCached(Curl &curl, const std::string& url, time_t cacheDuration);
-  virtual string HttpGet(Curl &curl, string url);
-  virtual string HttpDelete(Curl &curl, string url);
-  virtual void ApiSetHeader(Curl &curl);
   virtual bool ApiGetResult(string content, Document &doc);
   virtual bool ApiGet(string url, Document &doc, time_t cacheDuration);
   virtual bool ApiPost(string url, string postData, Document &doc);
   virtual bool ApiDelete(string url, Document &doc);
-  virtual string HttpPost(Curl &curl, string url, string postData);
-  virtual string HttpRequest(Curl &curl, string action, string url,
-      string postData);
   virtual string FollowRedirect(string url);
   virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
   void TransferChannel(kodi::addon::PVRChannelsResultSet& results, TeleBoyChannel channel,

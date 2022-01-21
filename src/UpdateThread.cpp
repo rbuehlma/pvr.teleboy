@@ -1,7 +1,7 @@
 #include "UpdateThread.h"
 #include <time.h>
 #include "TeleBoy.h"
-#include "Cache.h"
+#include "http/Cache.h"
 
 #include "kodi/General.h"
 

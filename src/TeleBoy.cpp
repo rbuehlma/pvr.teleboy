@@ -1,5 +1,4 @@
 #include "TeleBoy.h"
-#include "Cache.h"
 #include "md5.h"
 #include "Utils.h"
 #ifdef TARGET_WINDOWS
@@ -27,84 +26,7 @@ using namespace std;
 using namespace rapidjson;
 
 static const string apiUrl = "https://tv.api.teleboy.ch";
-static const string apiDeviceType = "desktop";
-static const string apiVersion = "2.0";
-const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
 std::mutex TeleBoy::sendEpgToKodiMutex;
-static const std::string user_agent = std::string("Kodi/")
-    + std::string(STR(KODI_VERSION)) + std::string(" pvr.teleboy/")
-    + std::string(STR(TELEBOY_VERSION)) + std::string(" (Kodi PVR addon)");
-
-
-std::string TeleBoy::HttpGetCached(Curl &curl, const std::string& url, time_t cacheDuration)
-{
-
-  std::string content;
-  std::string cacheKey = md5(url);
-  if (!Cache::Read(cacheKey, content))
-  {
-    content = HttpGet(curl, url);
-    if (!content.empty())
-    {
-      time_t validUntil;
-      time(&validUntil);
-      validUntil += cacheDuration;
-      Cache::Write(cacheKey, content, validUntil);
-    }
-  }
-  return content;
-}
-
-string TeleBoy::HttpGet(Curl &curl, string url)
-{
-  return HttpRequest(curl, "GET", url, "");
-}
-
-string TeleBoy::HttpDelete(Curl &curl, string url)
-{
-  return HttpRequest(curl, "DELETE", url, "");
-}
-
-string TeleBoy::HttpPost(Curl &curl, string url, string postData)
-{
-  return HttpRequest(curl, "POST", url, postData);
-}
-
-string TeleBoy::HttpRequest(Curl &curl, string action, string url,
-    string postData)
-{
-  curl.AddHeader("User-Agent", user_agent);
-  int statusCode;
-  kodi::Log(ADDON_LOG_DEBUG, "Http-Request: %s %s.", action.c_str(), url.c_str());
-  string content;
-  if (action.compare("POST") == 0)
-  {
-    content = curl.Post(url, postData, statusCode);
-  }
-  else if (action.compare("DELETE") == 0)
-  {
-    content = curl.Delete(url, statusCode);
-  }
-  else
-  {
-    content = curl.Get(url, statusCode);
-  }
-  string cinergys = curl.GetCookie("cinergy_s");
-  if (!cinergys.empty() && cinergys != cinergySCookies && cinergys != "deleted")
-  {
-    cinergySCookies = cinergys;
-    WriteDataJson();
-  }
-  return content;
-}
-
-void TeleBoy::ApiSetHeader(Curl &curl)
-{
-  curl.AddHeader("x-teleboy-apikey", apiKey);
-  curl.AddHeader("x-teleboy-device-type", apiDeviceType);
-  curl.AddHeader("x-teleboy-session", cinergySCookies);
-  curl.AddHeader("x-teleboy-version", apiVersion);
-}
 
 bool TeleBoy::ApiGetResult(string content, Document &doc)
 {
@@ -121,46 +43,41 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
 
 bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
 {
-  Curl curl;
-  ApiSetHeader(curl);
   string content;
+  int statusCode;
   if (timeout > 0) {
-    content = HttpGetCached(curl, apiUrl + url, timeout);
+    content = m_httpClient->HttpGetCached(apiUrl + url, timeout, statusCode);
   } else {
-    content = HttpGet(curl, apiUrl + url);
+    content = m_httpClient->HttpGet(apiUrl + url, statusCode);
   }
-  curl.ResetHeaders();
   return ApiGetResult(content, doc);
 }
 
 bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 {
-  Curl curl;
-  ApiSetHeader(curl);
-  if (!postData.empty())
-  {
-    curl.AddHeader("Content-Type", "application/json");
-  }
-  string content = HttpPost(curl, apiUrl + url, postData);
-  curl.ResetHeaders();
+  int statusCode;
+  string content = m_httpClient->HttpPost(apiUrl + url, postData, statusCode);
   return ApiGetResult(content, doc);
 }
 
 bool TeleBoy::ApiDelete(string url, Document &doc)
 {
-  Curl curl;
-  ApiSetHeader(curl);
-  string content = HttpDelete(curl, apiUrl + url);
-  curl.ResetHeaders();
+  int statusCode;
+  string content = m_httpClient->HttpDelete(apiUrl + url, statusCode);
   return ApiGetResult(content, doc);
 }
 
 TeleBoy::TeleBoy() :
-    teleboyUsername(""), teleboyPassword(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
-        ""), isPlusMember(false), isComfortMember(false)
+    teleboyUsername(""),
+    teleboyPassword(""),
+    enableDolby(false),
+    favoritesOnly(false),
+    maxRecallSeconds(60 * 60 * 24 * 7),
+    isPlusMember(false),
+    isComfortMember(false)
 {
-  kodi::Log(ADDON_LOG_INFO, "Using useragent: %s", user_agent.c_str());
-  ReadDataJson();
+  m_parameterDB = new ParameterDB(UserPath());
+  m_httpClient = new HttpClient(m_parameterDB);
 }
 
 TeleBoy::~TeleBoy()
@@ -169,6 +86,8 @@ TeleBoy::~TeleBoy()
   {
     delete updateThread;
   }
+  delete m_httpClient;
+  delete m_parameterDB;
 }
 
 ADDON_STATUS TeleBoy::Create()
@@ -179,7 +98,7 @@ ADDON_STATUS TeleBoy::Create()
   enableDolby = kodi::GetSettingBoolean("enableDolby");
   teleboyUsername = kodi::GetSettingString("username");
   teleboyPassword = kodi::GetSettingString("password");
-
+  
   if (teleboyUsername.empty() || teleboyPassword.empty())
   {
     kodi::Log(ADDON_LOG_INFO, "Username or password not set.");
@@ -239,43 +158,39 @@ ADDON_STATUS TeleBoy::SetSetting(const std::string& settingName, const kodi::CSe
 
 bool TeleBoy::Login(string u, string p)
 {
+  m_httpClient->ResetHeaders();
   string tbUrl = "https://www.teleboy.ch";
-  Curl curl;
-  if (!cinergySCookies.empty())
-  {
-    curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
-  }
-  string result = HttpGet(curl, tbUrl + "/live");
+  int statusCode;
+  string result = m_httpClient->HttpGet(tbUrl + "/live", statusCode);
   bool isAuthenticated = result.find("setIsAuthenticated(true") != std::string::npos;
-  curl.AddHeader("redirect-limit", "0");
+  
+  m_httpClient->AddHeader("redirect-limit", "0");
 
   if (!isAuthenticated) {
     kodi::Log(ADDON_LOG_INFO, "Not yet authenticated. Try to login.");
-    HttpGet(curl, tbUrl + "/login");
-    string location = curl.GetLocation();
+    m_httpClient->HttpGet(tbUrl + "/login", statusCode);
+    string location = m_httpClient->GetLocation();
     if (location.find("t.teleboy.ch") != string::npos)
     {
       kodi::Log(ADDON_LOG_INFO, "Using t.teleboy.ch.");
       tbUrl = "https://t.teleboy.ch";
-      HttpGet(curl, tbUrl + "/login");
+      m_httpClient->HttpGet(tbUrl + "/login", statusCode);
     }
-    curl.AddHeader("Referer", tbUrl + "/login");
-    if (!cinergySCookies.empty())
-    {
-      curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
-    }
-    result = HttpPost(curl, tbUrl + "/login_check",
+    
+    m_httpClient->AddHeader("Referer", tbUrl + "/login");
+    result = m_httpClient->HttpPost(tbUrl + "/login_check",
         "login=" + Utils::UrlEncode(u) + "&password=" + Utils::UrlEncode(p)
-            + "&keep_login=1");
-    curl.ResetHeaders();
-    curl.AddHeader("redirect-limit", "5");
-    curl.AddHeader("Referer", tbUrl + "/login");
-    if (!cinergySCookies.empty())
-    {
-      curl.AddOption("cookie", "welcomead=1; cinergy_s=" + cinergySCookies);
+            + "&keep_login=1", statusCode);
+    if (statusCode >= 400) {
+      kodi::Log(ADDON_LOG_ERROR, "Authentication failed.");
+            return false;
     }
-    result = HttpGet(curl, tbUrl);
-    curl.ResetHeaders();
+    
+    m_httpClient->ResetHeaders();
+    m_httpClient->AddHeader("redirect-limit", "5");
+    m_httpClient->AddHeader("Referer", tbUrl + "/login");
+    result = m_httpClient->HttpGet(tbUrl, statusCode);
+    m_httpClient->ResetHeaders();
     if (result.empty())
     {
       kodi::Log(ADDON_LOG_ERROR, "Failed to login.");
@@ -299,7 +214,7 @@ bool TeleBoy::Login(string u, string p)
     kodi::Log(ADDON_LOG_ERROR, "Received api key is invalid.");
     return false;
   }
-  apiKey = result.substr(pos1, endPos - pos1);
+  m_httpClient->SetApiKey(result.substr(pos1, endPos - pos1));
 
   pos = result.find("setId(");
   if (pos == std::string::npos)
@@ -326,6 +241,8 @@ bool TeleBoy::Login(string u, string p)
     return false;
   }
   kodi::Log(ADDON_LOG_DEBUG, "Got userId: %s.", userId.c_str());
+  
+  m_httpClient->AddHeader("Content-Type", "application/json");
 
   for (int i = 0; i < 3; ++i)
   {
@@ -932,65 +849,6 @@ string TeleBoy::GetStringOrEmpty(const Value& jsonValue, const char* fieldName)
     return "";
   }
   return jsonValue[fieldName].GetString();
-}
-
-bool TeleBoy::ReadDataJson()
-{
-  if (!kodi::vfs::FileExists(data_file, true))
-  {
-    return true;
-  }
-  std::string jsonString = Utils::ReadFile(data_file);
-  if (jsonString.empty())
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Loading data.json failed.");
-    return false;
-  }
-
-  Document doc;
-  doc.Parse(jsonString.c_str());
-  if (doc.GetParseError())
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Parsing data.json failed.");
-    return false;
-  }
-
-  if (doc.HasMember("cinergy_s"))
-  {
-    cinergySCookies = GetStringOrEmpty(doc, "cinergy_s");
-    kodi::Log(ADDON_LOG_DEBUG, "Loaded cinergy_s: %s..", cinergySCookies.substr(0, 5).c_str());
-  }
-
-  kodi::Log(ADDON_LOG_DEBUG, "Loaded data.json.");
-  return true;
-}
-
-bool TeleBoy::WriteDataJson()
-{
-  kodi::vfs::CFile file;
-  if (!file.OpenFileForWrite(data_file, true))
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Save data.json failed.");
-    return false;
-  }
-
-  Document d;
-  d.SetObject();
-  Document::AllocatorType& allocator = d.GetAllocator();
-
-  if (!cinergySCookies.empty())
-  {
-    Value cinergySValue;
-    cinergySValue.SetString(cinergySCookies.c_str(), cinergySCookies.length(), allocator);
-    d.AddMember("cinergy_s", cinergySValue, allocator);
-  }
-
-  StringBuffer buffer;
-  Writer<StringBuffer> writer(buffer);
-  d.Accept(writer);
-  const char* output = buffer.GetString();
-  file.Write(output, strlen(output));
-  return true;
 }
 
 std::string TeleBoy::GetStreamParameters() {
