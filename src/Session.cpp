@@ -165,9 +165,9 @@ bool Session::Login(string u, string p)
   m_isComfortMember = result.find("setIsComfortMember(1", endPos)
       != std::string::npos;
   if (!m_isPlusMember) {
-    /*kodi::Log(ADDON_LOG_INFO, "Free accounts are not supported.", userId.c_str());
+    kodi::Log(ADDON_LOG_INFO, "Free accounts are not supported.", userId.c_str());
     kodi::QueueNotification(QUEUE_ERROR, "", kodi::GetLocalizedString(30102));
-    return false;*/
+    return false;
   }
   kodi::Log(ADDON_LOG_DEBUG, "Got userId: %s.", m_userId.c_str());
   
