@@ -20,6 +20,7 @@ set(DEPLIBS sqlite
 set(TELEBOY_SOURCES
 		src/Utils.cpp
 		src/md5.cpp
+		src/Session.cpp
 		src/TeleBoy.cpp
 		src/UpdateThread.cpp
 		src/categories.cpp
@@ -33,6 +34,7 @@ set(TELEBOY_SOURCES
 set(TELEBOY_HEADERS
 		src/md5.h
 		src/UpdateThread.h
+		src/Session.h
 		src/TeleBoy.h
 		src/to_string.h
 		src/Utils.h
@@ -43,6 +45,7 @@ set(TELEBOY_HEADERS
 		src/http/Curl.h
 		src/http/Cache.h
 		src/http/HttpClient.h
+		src/http/HttpStatusCodeHandler.h
 )
 
 if(WIN32)
@@ -57,7 +60,7 @@ if ( MSVC )
 endif ( MSVC )
 
 addon_version(pvr.teleboy TELEBOY)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DTELEBOY_VERSION=${TELEBOY_VERSION} -DKODI_VERSION=${kodiplatform_VERSION}")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DTELEBOY_VERSION=${TELEBOY_VERSION} -DKODI_VERSION=${APP_VERSION_CODE}")
 
 
 build_addon(pvr.teleboy TELEBOY DEPLIBS)

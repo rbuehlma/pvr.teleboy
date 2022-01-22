@@ -6,7 +6,7 @@
 
 static const std::string USER_AGENT = std::string("Kodi/")
     + std::string(STR(KODI_VERSION)) + std::string(" pvr.teleboy/")
-    + std::string(STR(TELEBOY_VERSION)) + std::string(" (Kodi PVR addon)");
+    + std::string(STR(TELEBOY_VERSION));
 
 static const std::string apiDeviceType = "desktop";
 static const std::string apiVersion = "2.0";
@@ -25,7 +25,8 @@ HttpClient::~HttpClient()
 }
 
 void HttpClient::ClearSession() {
-  m_cinergyS = GetUUID();
+  m_cinergyS = "";
+  m_parameterDB->Set("cinergy_s", m_cinergyS);
   m_apiKey = "";  
 }
 
@@ -99,6 +100,9 @@ std::string HttpClient::HttpRequest(const std::string& action, const std::string
 
   if (statusCode >= 400 || statusCode < 200) {
     kodi::Log(ADDON_LOG_ERROR, "Open URL failed with %i.", statusCode);
+    if (m_statusCodeHandler != nullptr) {
+      m_statusCodeHandler->ErrorStatusCode(statusCode);
+    }
     return "";
   }
   std::string cinergys = curl.GetCookie("cinergy_s");

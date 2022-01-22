@@ -13,8 +13,9 @@ std::queue<EpgQueueEntry> UpdateThread::loadEpgQueue;
 time_t UpdateThread::nextRecordingsUpdate;
 std::mutex UpdateThread::mutex;
 
-UpdateThread::UpdateThread(int threadIdx, TeleBoy& teleboy) :
+UpdateThread::UpdateThread(int threadIdx, TeleBoy& teleboy, Session& session) :
     m_teleboy(teleboy),
+    m_session(session),
     m_threadIdx(threadIdx)
 {
   time(&UpdateThread::nextRecordingsUpdate);
@@ -61,7 +62,7 @@ void UpdateThread::Process()
   while (m_running)
   {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    if (!m_running)
+    if (!m_running || !m_session.IsConnected())
     {
       continue;
     }

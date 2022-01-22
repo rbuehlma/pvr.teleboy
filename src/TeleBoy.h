@@ -5,6 +5,7 @@
 #include "rapidjson/document.h"
 #include "sql/ParameterDB.h"
 #include "http/HttpClient.h"
+#include "Session.h"
 
 #include "kodi/addon-instance/PVR.h"
 
@@ -65,26 +66,20 @@ public:
         std::vector<kodi::addon::PVRStreamProperty>& properties) override;
   PVR_ERROR GetEPGTagEdl(const kodi::addon::PVREPGTag& tag,
         std::vector<kodi::addon::PVREDLEntry>& edl) override;
+  void UpdateConnectionState(const std::string& connectionString, PVR_CONNECTION_STATE newState, const std::string& message);
+  virtual void SessionInitialized();
 
 private:
-  string teleboyUsername;
-  string teleboyPassword;
-  bool favoritesOnly;
-  bool enableDolby;
-  string userId;
   map<int, TeleBoyChannel> channelsById;
   map<int, TeleboyGenre> genresById;
   static std::mutex sendEpgToKodiMutex;
   vector<int> sortedChannels;
-  int64_t maxRecallSeconds;
   vector<UpdateThread*> updateThreads;
-  bool isPlusMember;
-  bool isComfortMember;
   Categories m_categories;
   ParameterDB *m_parameterDB;
   HttpClient *m_httpClient;
+  Session *m_session;
 
-  virtual bool Login(string u, string p);
   virtual string FormatDate(time_t dateTime);
   virtual bool ApiGetResult(string content, Document &doc);
   virtual bool ApiGet(string url, Document &doc, time_t cacheDuration);
