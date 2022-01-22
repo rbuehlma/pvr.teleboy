@@ -4,6 +4,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include "Session.h"
 
 class TeleBoy;
 
@@ -17,7 +18,7 @@ struct EpgQueueEntry
 class UpdateThread
 {
 public:
-  UpdateThread(int threadIdx, TeleBoy& teleboy);
+  UpdateThread(int threadIdx, TeleBoy& teleboy, Session& session);
   ~UpdateThread();
   static void SetNextRecordingUpdate(time_t nextRecordingsUpdate);
   static void LoadEpg(int uniqueChannelId, time_t startTime, time_t endTime);
@@ -25,6 +26,7 @@ public:
 
 private:
   TeleBoy& m_teleboy;
+  Session& m_session;
   int m_threadIdx;
   static std::queue<EpgQueueEntry> loadEpgQueue;
   static time_t nextRecordingsUpdate;

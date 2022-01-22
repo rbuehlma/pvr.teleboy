@@ -9,28 +9,43 @@ find_package(RapidJSON REQUIRED)
 
 include_directories(${KODI_INCLUDE_DIR}
                     ${RAPIDJSON_INCLUDE_DIRS}
+                    ${PROJECT_SOURCE_DIR}/lib
+)
+
+add_subdirectory(lib/sqlite)
+
+set(DEPLIBS sqlite
 )
 
 set(TELEBOY_SOURCES
 		src/Utils.cpp
-		src/Curl.cpp
 		src/md5.cpp
-		src/Cache.cpp
+		src/Session.cpp
 		src/TeleBoy.cpp
 		src/UpdateThread.cpp
 		src/categories.cpp
+		src/sql/SQLConnection.cpp
+		src/sql/ParameterDB.cpp	
+		src/http/Curl.cpp
+		src/http/Cache.cpp
+		src/http/HttpClient.cpp
 )
 
 set(TELEBOY_HEADERS
-		src/Curl.h
 		src/md5.h
-		src/Cache.h
 		src/UpdateThread.h
+		src/Session.h
 		src/TeleBoy.h
 		src/to_string.h
 		src/Utils.h
 		src/windows.h
 		src/categories.h
+		src/sql/SQLConnection.h
+		src/sql/ParameterDB.h
+		src/http/Curl.h
+		src/http/Cache.h
+		src/http/HttpClient.h
+		src/http/HttpStatusCodeHandler.h
 )
 
 if(WIN32)
@@ -45,7 +60,7 @@ if ( MSVC )
 endif ( MSVC )
 
 addon_version(pvr.teleboy TELEBOY)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DTELEBOY_VERSION=${TELEBOY_VERSION} -DKODI_VERSION=${kodiplatform_VERSION}")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DTELEBOY_VERSION=${TELEBOY_VERSION} -DKODI_VERSION=${APP_VERSION_CODE}")
 
 
 build_addon(pvr.teleboy TELEBOY DEPLIBS)
