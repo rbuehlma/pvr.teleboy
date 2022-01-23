@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.8.5"
+       version="19.8.6"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
     @ADDON_DEPENDS@
     <import addon="inputstream.adaptive" minversion="2.4.2"/>
+    <import addon="script.module.inputstreamhelper" version="0.5.8"/>
   </requires>
   <extension point="kodi.pvrclient" library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
@@ -32,6 +33,8 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.8.6
+ - Depend on InputStream Helper addon for DRM protection
 v19.8.5
  - Fix account check
 v19.8.4
