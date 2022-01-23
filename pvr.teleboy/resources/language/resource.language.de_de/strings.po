@@ -67,7 +67,7 @@ msgid "Missing username or password"
 msgstr "Fehlender Benutzername oder Passwort"
 
 #. Notification message to show on screen if login failed
-#: src/TeleBoy.cpp
+#: src/Session.cpp
 msgctxt "#30101"
 msgid "Login failed!"
 msgstr "Anmeldung fehlgeschlagen!"
@@ -76,3 +76,21 @@ msgstr "Anmeldung fehlgeschlagen!"
 msgctxt "#30102"
 msgid "Free accounts are not supported!"
 msgstr "Freie Konten nicht Verfügbar!"
+
+#. Notification message to show on screen if login rate limit reached
+#: src/Session.cpp
+msgctxt "#30103"
+msgid "Login rate limit reach!"
+msgstr "Zu viele Anmeldeversuche!"
+
+#. Notification message to show on screen if server is not reachable
+#: src/Session.cpp
+msgctxt "#30104"
+msgid "Server not reachable!"
+msgstr "Server nicht erreichbar!"
+
+#. Notification message to show on screen if server is connected
+#: src/Session.cpp
+msgctxt "#30105"
+msgid "Connected"
+msgstr "Verbunden"

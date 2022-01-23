@@ -1,5 +1,4 @@
 #include "TeleBoy.h"
-#include "Cache.h"
 #include "md5.h"
 #include "Utils.h"
 #ifdef TARGET_WINDOWS
@@ -27,84 +26,7 @@ using namespace std;
 using namespace rapidjson;
 
 static const string apiUrl = "https://tv.api.teleboy.ch";
-static const string apiDeviceType = "desktop";
-static const string apiVersion = "2.0";
-const char data_file[] = "special://profile/addon_data/pvr.teleboy/data.json";
 std::mutex TeleBoy::sendEpgToKodiMutex;
-static const std::string user_agent = std::string("Kodi/")
-    + std::string(STR(KODI_VERSION)) + std::string(" pvr.teleboy/")
-    + std::string(STR(TELEBOY_VERSION)) + std::string(" (Kodi PVR addon)");
-
-
-std::string TeleBoy::HttpGetCached(Curl &curl, const std::string& url, time_t cacheDuration)
-{
-
-  std::string content;
-  std::string cacheKey = md5(url);
-  if (!Cache::Read(cacheKey, content))
-  {
-    content = HttpGet(curl, url);
-    if (!content.empty())
-    {
-      time_t validUntil;
-      time(&validUntil);
-      validUntil += cacheDuration;
-      Cache::Write(cacheKey, content, validUntil);
-    }
-  }
-  return content;
-}
-
-string TeleBoy::HttpGet(Curl &curl, string url)
-{
-  return HttpRequest(curl, "GET", url, "");
-}
-
-string TeleBoy::HttpDelete(Curl &curl, string url)
-{
-  return HttpRequest(curl, "DELETE", url, "");
-}
-
-string TeleBoy::HttpPost(Curl &curl, string url, string postData)
-{
-  return HttpRequest(curl, "POST", url, postData);
-}
-
-string TeleBoy::HttpRequest(Curl &curl, string action, string url,
-    string postData)
-{
-  curl.AddHeader("User-Agent", user_agent);
-  int statusCode;
-  kodi::Log(ADDON_LOG_DEBUG, "Http-Request: %s %s.", action.c_str(), url.c_str());
-  string content;
-  if (action.compare("POST") == 0)
-  {
-    content = curl.Post(url, postData, statusCode);
-  }
-  else if (action.compare("DELETE") == 0)
-  {
-    content = curl.Delete(url, statusCode);
-  }
-  else
-  {
-    content = curl.Get(url, statusCode);
-  }
-  string cinergys = curl.GetCookie("cinergy_s");
-  if (!cinergys.empty() && cinergys != cinergySCookies && cinergys != "deleted")
-  {
-    cinergySCookies = cinergys;
-    WriteDataJson();
-  }
-  return content;
-}
-
-void TeleBoy::ApiSetHeader(Curl &curl)
-{
-  curl.AddHeader("x-teleboy-apikey", apiKey);
-  curl.AddHeader("x-teleboy-device-type", apiDeviceType);
-  curl.AddHeader("x-teleboy-session", cinergySCookies);
-  curl.AddHeader("x-teleboy-version", apiVersion);
-}
 
 bool TeleBoy::ApiGetResult(string content, Document &doc)
 {
@@ -121,46 +43,36 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
 
 bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
 {
-  Curl curl;
-  ApiSetHeader(curl);
   string content;
+  int statusCode;
   if (timeout > 0) {
-    content = HttpGetCached(curl, apiUrl + url, timeout);
+    content = m_httpClient->HttpGetCached(apiUrl + url, timeout, statusCode);
   } else {
-    content = HttpGet(curl, apiUrl + url);
+    content = m_httpClient->HttpGet(apiUrl + url, statusCode);
   }
-  curl.ResetHeaders();
   return ApiGetResult(content, doc);
 }
 
 bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 {
-  Curl curl;
-  ApiSetHeader(curl);
-  if (!postData.empty())
-  {
-    curl.AddHeader("Content-Type", "application/json");
-  }
-  string content = HttpPost(curl, apiUrl + url, postData);
-  curl.ResetHeaders();
+  int statusCode;
+  string content = m_httpClient->HttpPost(apiUrl + url, postData, statusCode);
   return ApiGetResult(content, doc);
 }
 
 bool TeleBoy::ApiDelete(string url, Document &doc)
 {
-  Curl curl;
-  ApiSetHeader(curl);
-  string content = HttpDelete(curl, apiUrl + url);
-  curl.ResetHeaders();
+  int statusCode;
+  string content = m_httpClient->HttpDelete(apiUrl + url, statusCode);
   return ApiGetResult(content, doc);
 }
 
-TeleBoy::TeleBoy() :
-    teleboyUsername(""), teleboyPassword(""), maxRecallSeconds(60 * 60 * 24 * 7), cinergySCookies(
-        ""), isPlusMember(false), isComfortMember(false)
+TeleBoy::TeleBoy()
 {
-  kodi::Log(ADDON_LOG_INFO, "Using useragent: %s", user_agent.c_str());
-  ReadDataJson();
+  m_parameterDB = new ParameterDB(UserPath());
+  m_httpClient = new HttpClient(m_parameterDB);
+  m_session = new Session(m_httpClient, this);
+  m_httpClient->SetStatusCodeHandler(m_session);
 }
 
 TeleBoy::~TeleBoy()
@@ -169,172 +81,34 @@ TeleBoy::~TeleBoy()
   {
     delete updateThread;
   }
+  delete m_httpClient;
+  delete m_parameterDB;
 }
 
 ADDON_STATUS TeleBoy::Create()
 {
   kodi::Log(ADDON_LOG_DEBUG, "%s - Creating the PVR Teleboy add-on", __FUNCTION__);
-
-  favoritesOnly = kodi::addon::GetSettingBoolean("favoritesonly");
-  enableDolby = kodi::addon::GetSettingBoolean("enableDolby");
-  teleboyUsername = kodi::addon::GetSettingString("username");
-  teleboyPassword = kodi::addon::GetSettingString("password");
-
-  if (teleboyUsername.empty() || teleboyPassword.empty())
-  {
-    kodi::Log(ADDON_LOG_INFO, "Username or password not set.");
-    kodi::QueueNotification(QUEUE_WARNING, "", kodi::addon::GetLocalizedString(30100));
-    return ADDON_STATUS_NEED_SETTINGS;
-  }
-
-  kodi::Log(ADDON_LOG_DEBUG, "Login Teleboy");
-  if (Login(teleboyUsername, teleboyPassword))
-  {
-    kodi::Log(ADDON_LOG_DEBUG, "Login done");
-  }
-  else
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Login failed");
-    kodi::QueueNotification(QUEUE_ERROR, "", kodi::addon::GetLocalizedString(30101));
-    return ADDON_STATUS_NEED_SETTINGS;
-  }
-
-  return ADDON_STATUS_OK;
+  return m_session->Start();
 }
 
 ADDON_STATUS TeleBoy::SetSetting(const std::string& settingName, const kodi::addon::CSettingValue& settingValue)
 {
-  if (settingName == "username")
-  {
-    string username = settingValue.GetString();
-    if (username != teleboyUsername)
-    {
-      teleboyUsername = username;
-      return ADDON_STATUS_NEED_RESTART;
-    }
-  }
-
-  if (settingName == "password")
-  {
-    string password = settingValue.GetString();
-    if (password != teleboyPassword)
-    {
-      teleboyPassword = password;
-      return ADDON_STATUS_NEED_RESTART;
-    }
-  }
-
-  if (settingName == "favoritesonly")
-  {
-    bool favOnly = settingValue.GetBoolean();
-    if (favOnly != favoritesOnly)
-    {
-      favoritesOnly = favOnly;
-      return ADDON_STATUS_NEED_RESTART;
-    }
-  }
-
-  return ADDON_STATUS_OK;
+  return m_session->SetSetting(settingName, settingValue);
 }
 
-bool TeleBoy::Login(string u, string p)
+void TeleBoy::UpdateConnectionState(const std::string& connectionString, PVR_CONNECTION_STATE newState, const std::string& message) {
+  kodi::addon::CInstancePVRClient::ConnectionStateChange(connectionString, newState, message);
+}
+
+void TeleBoy::SessionInitialized()
 {
-  string tbUrl = "https://www.teleboy.ch";
-  Curl curl;
-  if (!cinergySCookies.empty())
+  while (updateThreads.size() < 3)
   {
-    curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
-  }
-  string result = HttpGet(curl, tbUrl + "/live");
-  bool isAuthenticated = result.find("setIsAuthenticated(true") != std::string::npos;
-  curl.AddHeader("redirect-limit", "0");
-
-  if (!isAuthenticated) {
-    kodi::Log(ADDON_LOG_INFO, "Not yet authenticated. Try to login.");
-    HttpGet(curl, tbUrl + "/login");
-    string location = curl.GetLocation();
-    if (location.find("t.teleboy.ch") != string::npos)
-    {
-      kodi::Log(ADDON_LOG_INFO, "Using t.teleboy.ch.");
-      tbUrl = "https://t.teleboy.ch";
-      HttpGet(curl, tbUrl + "/login");
-    }
-    curl.AddHeader("Referer", tbUrl + "/login");
-    if (!cinergySCookies.empty())
-    {
-      curl.AddOption("cookie", "cinergy_s=" + cinergySCookies);
-    }
-    result = HttpPost(curl, tbUrl + "/login_check",
-        "login=" + Utils::UrlEncode(u) + "&password=" + Utils::UrlEncode(p)
-            + "&keep_login=1");
-    curl.ResetHeaders();
-    curl.AddHeader("redirect-limit", "5");
-    curl.AddHeader("Referer", tbUrl + "/login");
-    if (!cinergySCookies.empty())
-    {
-      curl.AddOption("cookie", "welcomead=1; cinergy_s=" + cinergySCookies);
-    }
-    result = HttpGet(curl, tbUrl);
-    curl.ResetHeaders();
-    if (result.empty())
-    {
-      kodi::Log(ADDON_LOG_ERROR, "Failed to login.");
-      return false;
-    }
-  } else {
-    kodi::Log(ADDON_LOG_INFO, "Already authenticated.");
-  }
-
-  size_t pos = result.find("tvapiKey:");
-  size_t pos1 = result.find("'", pos) + 1;
-  if (pos == std::string::npos || pos1 > pos + 50)
-  {
-    kodi::Log(ADDON_LOG_ERROR, "No api key found.");
-    return false;
-  }
-  size_t endPos = result.find("'", pos1);
-  if (endPos - pos1 > 65 || endPos <= pos)
-  {
-    kodi::Log(ADDON_LOG_DEBUG, "Got HTML body: %s", result.c_str());
-    kodi::Log(ADDON_LOG_ERROR, "Received api key is invalid.");
-    return false;
-  }
-  apiKey = result.substr(pos1, endPos - pos1);
-
-  pos = result.find("setId(");
-  if (pos == std::string::npos)
-  {
-    kodi::Log(ADDON_LOG_ERROR, "No user settings found.");
-    return false;
-  }
-  pos += 6;
-  endPos = result.find(")", pos);
-  if (endPos - pos > 15 || endPos <= pos)
-  {
-    kodi::Log(ADDON_LOG_DEBUG, "Got HTML body: %s", result.c_str());
-    kodi::Log(ADDON_LOG_ERROR, "Received userId is invalid.");
-    return false;
-  }
-  userId = result.substr(pos, endPos - pos);
-
-  isPlusMember = result.find("setIsPlusMember(1", endPos) != std::string::npos;
-  isComfortMember = result.find("setIsComfortMember(1", endPos)
-      != std::string::npos;
-  if (!isPlusMember) {
-    kodi::Log(ADDON_LOG_INFO, "Free accounts are not supported.", userId.c_str());
-    kodi::QueueNotification(QUEUE_ERROR, "", kodi::addon::GetLocalizedString(30102));
-    return false;
-  }
-  kodi::Log(ADDON_LOG_DEBUG, "Got userId: %s.", userId.c_str());
-
-  for (int i = 0; i < 3; ++i)
-  {
-    updateThreads.emplace_back(new UpdateThread(i, *this));
+    updateThreads.emplace_back(new UpdateThread(updateThreads.size(), *this, *m_session));
   }
 
   LoadChannels();
   LoadGenres();
-  return true;
 }
 
 PVR_ERROR TeleBoy::GetCapabilities(kodi::addon::PVRCapabilities& capabilities)
@@ -371,7 +145,7 @@ PVR_ERROR TeleBoy::GetBackendVersion(std::string& version)
 
 PVR_ERROR TeleBoy::GetConnectionString(std::string& connection)
 {
-  connection = "connected";
+  connection = m_session->IsConnected() ? "connected" : "not connected";
   return PVR_ERROR_NO_ERROR;
 }
 
@@ -436,7 +210,7 @@ bool TeleBoy::LoadChannels()
     channelsById[channel.id] = channel;
   }
 
-  if (!ApiGet("/users/" + userId + "/stations", json, 3600))
+  if (!ApiGet("/users/" + m_session->GetUserId() + "/stations", json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading sorted channels.");
     return false;
@@ -456,7 +230,11 @@ bool TeleBoy::LoadChannels()
 
 PVR_ERROR TeleBoy::GetChannelsAmount(int& amount)
 {
-  if (favoritesOnly)
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
+  if (m_session->GetFavoritesOnly())
   {
     amount = sortedChannels.size();
   }
@@ -469,13 +247,17 @@ PVR_ERROR TeleBoy::GetChannelsAmount(int& amount)
 
 PVR_ERROR TeleBoy::GetChannels(bool radio, kodi::addon::PVRChannelsResultSet& results)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   int channelNum = 0;
   for (int const &cid : sortedChannels)
   {
     channelNum++;
     TransferChannel(results, channelsById[cid], channelNum);
   }
-  if (!favoritesOnly)
+  if (!m_session->GetFavoritesOnly())
   {
     for (auto const &item : channelsById)
     {
@@ -507,8 +289,6 @@ void TeleBoy::TransferChannel(kodi::addon::PVRChannelsResultSet& results, TeleBo
 
 PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties, const Value& stream, bool realtime)
 {
-  PVR_ERROR ret = PVR_ERROR_FAILED;
-
   string url = GetStringOrEmpty(stream, "url");
   kodi::Log(ADDON_LOG_INFO, "Play URL: %s.", url.c_str());
   url = FollowRedirect(url);
@@ -540,9 +320,13 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
 
 PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   Document json;
   if (!ApiGet(
-      "/users/" + userId + "/stream/live/" + to_string(channel.GetUniqueId())
+      "/users/" + m_session->GetUserId() + "/stream/live/" + to_string(channel.GetUniqueId())
           + "?expand=primary_image,flags&https=1" + GetStreamParameters(), json, 0))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error getting live stream url for channel %i.",
@@ -590,7 +374,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
   {
     Document json;
     if (!ApiGet(
-        "/users/" + userId + "/broadcasts?begin=" + FormatDate(iStart)
+        "/users/" + m_session->GetUserId() + "/broadcasts?begin=" + FormatDate(iStart)
             + "+00:00:00&end=" + FormatDate(iEnd + 60 * 60 * 24) + "+00:00:00&expand=logos&limit=500&skip="
             + to_string(sum) + "&sort=station&station="
             + to_string(uniqueChannelId), json, 60*60*24))
@@ -673,8 +457,11 @@ PVR_ERROR TeleBoy::GetRecordingsAmount(bool deleted, int& amount)
 
 PVR_ERROR TeleBoy::DeleteRecording(const kodi::addon::PVRRecording& recording)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
   Document doc;
-  if (!ApiDelete("/users/" + userId + "/recordings/" + recording.GetRecordingId(), doc))
+  if (!ApiDelete("/users/" + m_session->GetUserId() + "/recordings/" + recording.GetRecordingId(), doc))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error deleting recording %s.", recording.GetRecordingId().c_str());
     return PVR_ERROR_SERVER_ERROR;
@@ -684,6 +471,10 @@ PVR_ERROR TeleBoy::DeleteRecording(const kodi::addon::PVRRecording& recording)
 
 PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultSet& results)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   int totals = -1;
   int sum = 0;
   string type = "ready";
@@ -691,7 +482,7 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
   {
     Document json;
     if (!ApiGet(
-        "/users/" + userId + "/recordings/" + type
+        "/users/" + m_session->GetUserId() + "/recordings/" + type
             + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 10))
     {
       kodi::Log(ADDON_LOG_ERROR, "Error getting recordings of type %s.",
@@ -745,10 +536,14 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
 
 PVR_ERROR TeleBoy::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   PVR_ERROR ret = PVR_ERROR_FAILED;
 
   Document json;
-  if (!ApiGet("/users/" + userId + "/stream/" + recording.GetRecordingId() + "?" + GetStreamParameters(), json, 0))
+  if (!ApiGet("/users/" + m_session->GetUserId() + "/stream/" + recording.GetRecordingId() + "?" + GetStreamParameters(), json, 0))
   {
     kodi::Log(ADDON_LOG_ERROR, "Could not get URL for recording: %s.",
         recording.GetRecordingId().c_str());
@@ -783,6 +578,10 @@ PVR_ERROR TeleBoy::GetTimersAmount(int& amount)
 
 PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   int totals = -1;
   int sum = 0;
   string type = "planned";
@@ -790,7 +589,7 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
   {
     Document json;
     if (!ApiGet(
-        "/users/" + userId + "/recordings/" + type
+        "/users/" + m_session->GetUserId() + "/recordings/" + type
             + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 10))
     {
       kodi::Log(ADDON_LOG_ERROR, "Error getting recordings of type %s.",
@@ -836,6 +635,10 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
 
 PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   if (timer.GetEPGUid() <= EPG_TAG_INVALID_UID)
   {
     return PVR_ERROR_REJECTED;
@@ -844,7 +647,7 @@ PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
   string postData = "{\"broadcast\": " + to_string(timer.GetEPGUid())
       + ", \"alternative\": false}";
   Document json;
-  if (!ApiPost("/users/" + userId + "/recordings", postData, json))
+  if (!ApiPost("/users/" + m_session->GetUserId() + "/recordings", postData, json))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error recording program %i.", timer.GetEPGUid());
     return PVR_ERROR_SERVER_ERROR;
@@ -857,8 +660,12 @@ PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
 
 PVR_ERROR TeleBoy::DeleteTimer(const kodi::addon::PVRTimer& timer, bool forceDelete)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   Document doc;
-  if (!ApiDelete("/users/" + userId + "/recordings/" + to_string(timer.GetClientIndex()), doc))
+  if (!ApiDelete("/users/" + m_session->GetUserId() + "/recordings/" + to_string(timer.GetClientIndex()), doc))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error deleting timer %i.", timer.GetClientIndex());
     return PVR_ERROR_SERVER_ERROR;
@@ -879,7 +686,11 @@ void TeleBoy::AddTimerType(std::vector<kodi::addon::PVRTimerType>& types, int id
 
 PVR_ERROR TeleBoy::IsEPGTagPlayable(const kodi::addon::PVREPGTag& tag, bool& isPlayable)
 {
-  if (!isComfortMember && !isPlusMember)
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
+  if (!m_session->GetIsPaidMember())
   {
     isPlayable = false;
     return PVR_ERROR_NO_ERROR;
@@ -887,7 +698,7 @@ PVR_ERROR TeleBoy::IsEPGTagPlayable(const kodi::addon::PVREPGTag& tag, bool& isP
 
   time_t current_time;
   time(&current_time);
-  isPlayable = ((current_time - tag.GetEndTime()) < maxRecallSeconds)
+  isPlayable = ((current_time - tag.GetEndTime()) < m_session->GetMaxRecallSeconds())
       && (tag.GetStartTime() < current_time);
   return PVR_ERROR_NO_ERROR;
 }
@@ -896,17 +707,21 @@ PVR_ERROR TeleBoy::IsEPGTagRecordable(const kodi::addon::PVREPGTag& tag, bool& i
 {
   time_t current_time;
   time(&current_time);
-  isRecordable = ((current_time - tag.GetEndTime()) < maxRecallSeconds);
+  isRecordable = ((current_time - tag.GetEndTime()) < m_session->GetMaxRecallSeconds());
   return PVR_ERROR_NO_ERROR;
 }
 
 PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_FAILED;
+  }
+
   PVR_ERROR ret = PVR_ERROR_FAILED;
 
   Document json;
   if (!ApiGet(
-      "/users/" + userId + "/stream/"+ to_string(tag.GetUniqueBroadcastId()) + "?" + GetStreamParameters()
+      "/users/" + m_session->GetUserId() + "/stream/"+ to_string(tag.GetUniqueBroadcastId()) + "?" + GetStreamParameters()
           , json, 0))
   {
     kodi::Log(ADDON_LOG_ERROR, "Could not get URL for epg tag.");
@@ -935,67 +750,8 @@ string TeleBoy::GetStringOrEmpty(const Value& jsonValue, const char* fieldName)
   return jsonValue[fieldName].GetString();
 }
 
-bool TeleBoy::ReadDataJson()
-{
-  if (!kodi::vfs::FileExists(data_file, true))
-  {
-    return true;
-  }
-  std::string jsonString = Utils::ReadFile(data_file);
-  if (jsonString.empty())
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Loading data.json failed.");
-    return false;
-  }
-
-  Document doc;
-  doc.Parse(jsonString.c_str());
-  if (doc.GetParseError())
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Parsing data.json failed.");
-    return false;
-  }
-
-  if (doc.HasMember("cinergy_s"))
-  {
-    cinergySCookies = GetStringOrEmpty(doc, "cinergy_s");
-    kodi::Log(ADDON_LOG_DEBUG, "Loaded cinergy_s: %s..", cinergySCookies.substr(0, 5).c_str());
-  }
-
-  kodi::Log(ADDON_LOG_DEBUG, "Loaded data.json.");
-  return true;
-}
-
-bool TeleBoy::WriteDataJson()
-{
-  kodi::vfs::CFile file;
-  if (!file.OpenFileForWrite(data_file, true))
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Save data.json failed.");
-    return false;
-  }
-
-  Document d;
-  d.SetObject();
-  Document::AllocatorType& allocator = d.GetAllocator();
-
-  if (!cinergySCookies.empty())
-  {
-    Value cinergySValue;
-    cinergySValue.SetString(cinergySCookies.c_str(), cinergySCookies.length(), allocator);
-    d.AddMember("cinergy_s", cinergySValue, allocator);
-  }
-
-  StringBuffer buffer;
-  Writer<StringBuffer> writer(buffer);
-  d.Accept(writer);
-  const char* output = buffer.GetString();
-  file.Write(output, strlen(output));
-  return true;
-}
-
 std::string TeleBoy::GetStreamParameters() {
-  std::string params = enableDolby ? "&dolby=1" : "";
+  std::string params = m_session->GetEnableDolby() ? "&dolby=1" : "";
   params += "&https=1&streamformat=dash";
   return params;
 }

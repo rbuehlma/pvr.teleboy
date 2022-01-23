@@ -1,5 +1,8 @@
 v20.2.1
  - Support drm
+ - Depend on InputStream Helper addon for DRM protection
+ - Fix account check
+ - Refactor session handling
 v20.2.0
 - Move news from addon.xml to new changelog.txt
 - Use rapidjson fd3dc29 to become C++17 fixed
@@ -10,6 +13,12 @@ v20.1.0
   - Enforce EDL limits
 v20.0.0
  - Adapt for Kodi 20 Nexus
+v19.8.6
+ - Depend on InputStream Helper addon for DRM protection
+v19.8.5
+ - Fix account check
+v19.8.4
+ - Refactor session handling
 v19.8.2
  - Support drm
 v19.8.1
