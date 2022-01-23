@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.8.6"
+       version="19.8.7"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -33,6 +33,8 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.8.7
+ - Prevent login loop
 v19.8.6
  - Depend on InputStream Helper addon for DRM protection
 v19.8.5
