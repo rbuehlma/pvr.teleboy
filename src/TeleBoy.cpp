@@ -100,6 +100,13 @@ void TeleBoy::UpdateConnectionState(const std::string& connectionString, PVR_CON
   kodi::addon::CInstancePVRClient::ConnectionStateChange(connectionString, newState, message);
 }
 
+ADDON_STATUS TeleBoy::GetStatus() {
+  if (!m_session->IsConnected()) {
+    return ADDON_STATUS_LOST_CONNECTION;
+  }
+  return ADDON_STATUS_OK;
+}
+
 void TeleBoy::SessionInitialized()
 {
   while (updateThreads.size() < 3)
@@ -230,7 +237,7 @@ bool TeleBoy::LoadChannels()
 PVR_ERROR TeleBoy::GetChannelsAmount(int& amount)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   if (m_session->GetFavoritesOnly())
@@ -247,7 +254,7 @@ PVR_ERROR TeleBoy::GetChannelsAmount(int& amount)
 PVR_ERROR TeleBoy::GetChannels(bool radio, kodi::addon::PVRChannelsResultSet& results)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   int channelNum = 0;
@@ -320,7 +327,7 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
 PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   Document json;
@@ -457,7 +464,7 @@ PVR_ERROR TeleBoy::GetRecordingsAmount(bool deleted, int& amount)
 PVR_ERROR TeleBoy::DeleteRecording(const kodi::addon::PVRRecording& recording)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
   Document doc;
   if (!ApiDelete("/users/" + m_session->GetUserId() + "/recordings/" + recording.GetRecordingId(), doc))
@@ -471,7 +478,7 @@ PVR_ERROR TeleBoy::DeleteRecording(const kodi::addon::PVRRecording& recording)
 PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultSet& results)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   int totals = -1;
@@ -536,7 +543,7 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
 PVR_ERROR TeleBoy::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   PVR_ERROR ret = PVR_ERROR_FAILED;
@@ -578,7 +585,7 @@ PVR_ERROR TeleBoy::GetTimersAmount(int& amount)
 PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   int totals = -1;
@@ -635,7 +642,7 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
 PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   if (timer.GetEPGUid() <= EPG_TAG_INVALID_UID)
@@ -660,7 +667,7 @@ PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
 PVR_ERROR TeleBoy::DeleteTimer(const kodi::addon::PVRTimer& timer, bool forceDelete)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   Document doc;
@@ -686,7 +693,7 @@ void TeleBoy::AddTimerType(std::vector<kodi::addon::PVRTimerType>& types, int id
 PVR_ERROR TeleBoy::IsEPGTagPlayable(const kodi::addon::PVREPGTag& tag, bool& isPlayable)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   if (!m_session->GetIsPaidMember())
@@ -713,7 +720,7 @@ PVR_ERROR TeleBoy::IsEPGTagRecordable(const kodi::addon::PVREPGTag& tag, bool& i
 PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
   if (!m_session->IsConnected()) {
-    return PVR_ERROR_FAILED;
+    return PVR_ERROR_SERVER_ERROR;
   }
 
   PVR_ERROR ret = PVR_ERROR_FAILED;

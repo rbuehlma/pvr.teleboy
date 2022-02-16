@@ -66,6 +66,7 @@ public:
         std::vector<kodi::addon::PVRStreamProperty>& properties) override;
   PVR_ERROR GetEPGTagEdl(const kodi::addon::PVREPGTag& tag,
         std::vector<kodi::addon::PVREDLEntry>& edl) override;
+  ADDON_STATUS GetStatus() override;
   void UpdateConnectionState(const std::string& connectionString, PVR_CONNECTION_STATE newState, const std::string& message);
   virtual void SessionInitialized();
 

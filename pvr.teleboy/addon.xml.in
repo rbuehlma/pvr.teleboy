@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.8.7"
+       version="19.8.8"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -33,6 +33,8 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.8.8
+ - Provide correct addond status to Kodi
 v19.8.7
  - Prevent login loop
 v19.8.6
