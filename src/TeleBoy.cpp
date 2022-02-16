@@ -505,12 +505,10 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
 
       kodi::addon::PVRRecording tag;
 
-      tag.SetSeriesNumber(PVR_RECORDING_INVALID_SERIES_EPISODE);
-      tag.SetEpisodeNumber(PVR_RECORDING_INVALID_SERIES_EPISODE);
       tag.SetIsDeleted(false);
       tag.SetRecordingId(to_string(item["id"].GetInt()));
       tag.SetTitle(GetStringOrEmpty(item, "title"));
-      tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));
+      tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));      
       tag.SetPlot(GetStringOrEmpty(item, "description"));
       tag.SetPlotOutline(GetStringOrEmpty(item, "short_description"));
       tag.SetChannelUid(item["station_id"].GetInt());
@@ -520,6 +518,13 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
       time_t endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
       tag.SetDuration(endTime - tag.GetRecordingTime());
       tag.SetEPGEventId(item["id"].GetInt());
+      if (item.HasMember("serie_season")) {
+        tag.SetSeriesNumber(item["serie_season"].GetInt());
+        tag.SetDirectory(tag.GetTitle());
+      }
+      if (item.HasMember("serie_episode")) {
+        tag.SetEpisodeNumber(item["serie_episode"].GetInt());
+      }
       if (item.HasMember("genre_id")) {
         int genreId = item["genre_id"].GetInt();
         TeleboyGenre genre = genresById[genreId];
