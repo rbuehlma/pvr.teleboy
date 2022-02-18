@@ -50,11 +50,11 @@ void Session::LoginThread() {
     kodi::Log(ADDON_LOG_DEBUG, "Login Teleboy");
     if (Login(teleboyUsername, teleboyPassword))
     {
+      m_isConnected = true;
+      m_teleBoy->SessionInitialized();
       kodi::Log(ADDON_LOG_DEBUG, "Login done");
       m_teleBoy->UpdateConnectionState("Teleboy connection established", PVR_CONNECTION_STATE_CONNECTED, "");
-      kodi::QueueNotification(QUEUE_INFO, "", kodi::GetLocalizedString(30105));
-      m_isConnected = true;
-      
+      kodi::QueueNotification(QUEUE_INFO, "", kodi::GetLocalizedString(30105));      
     }
     else
     {
@@ -178,7 +178,6 @@ bool Session::Login(string u, string p)
   kodi::Log(ADDON_LOG_DEBUG, "Got userId: %s.", m_userId.c_str());
   
   m_httpClient->AddHeader("Content-Type", "application/json");
-  m_teleBoy->SessionInitialized();
   return true;
 }
 
@@ -211,8 +210,4 @@ bool Session::VerifySettings() {
 }
 
 void Session::ErrorStatusCode (int statusCode) {
-  if (statusCode == 403) {
-    kodi::Log(ADDON_LOG_WARNING, "Got status code 403. Reset session.");
-    Reset();
-  }
 }

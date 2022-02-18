@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="pvr.teleboy"
-       version="19.8.9"
+       version="19.8.10"
        name="Teleboy PVR Client"
        provider-name="rbuehlma">
   <requires>
@@ -33,6 +33,9 @@
       <fanart>fanart.jpg</fanart>
     </assets>
     <news>
+v19.8.10
+ - Improve session handling
+ - Fix path for http cache
 v19.8.9
  - Improve series handling
 v19.8.8

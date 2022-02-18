@@ -37,6 +37,10 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
     {
       return true;
     }
+    if (doc["error_code"].GetInt() == 10403) {
+      kodi::Log(ADDON_LOG_WARNING, "Got error_code 10403. Reset session.");
+      m_session->Reset();
+    }
   }
   return false;
 }
@@ -45,6 +49,9 @@ bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
 {
   string content;
   int statusCode;
+  if (!m_session->IsConnected()) {
+    return false;
+  }
   if (timeout > 0) {
     content = m_httpClient->HttpGetCached(apiUrl + url, timeout, statusCode);
   } else {
@@ -56,6 +63,9 @@ bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
 bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 {
   int statusCode;
+  if (!m_session->IsConnected()) {
+    return false;
+  }
   string content = m_httpClient->HttpPost(apiUrl + url, postData, statusCode);
   return ApiGetResult(content, doc);
 }
@@ -63,6 +73,9 @@ bool TeleBoy::ApiPost(string url, string postData, Document &doc)
 bool TeleBoy::ApiDelete(string url, Document &doc)
 {
   int statusCode;
+  if (!m_session->IsConnected()) {
+    return false;
+  }
   string content = m_httpClient->HttpDelete(apiUrl + url, statusCode);
   return ApiGetResult(content, doc);
 }
