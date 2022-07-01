@@ -50,8 +50,11 @@ void Session::LoginThread() {
     kodi::Log(ADDON_LOG_DEBUG, "Login Teleboy");
     if (Login(teleboyUsername, teleboyPassword))
     {
+      if (!m_teleBoy->SessionInitialized()) {
+        m_nextLoginAttempt = std::time(0) + 60;
+        continue;
+      }
       m_isConnected = true;
-      m_teleBoy->SessionInitialized();
       kodi::Log(ADDON_LOG_DEBUG, "Login done");
       m_teleBoy->UpdateConnectionState("Teleboy connection established", PVR_CONNECTION_STATE_CONNECTED, "");
       kodi::QueueNotification(QUEUE_INFO, "", kodi::GetLocalizedString(30105));      
@@ -72,7 +75,7 @@ bool Session::Login(string u, string p)
   
   if (statusCode != 200)
   {
-    m_teleBoy->UpdateConnectionState("Not reachable", PVR_CONNECTION_STATE_SERVER_UNREACHABLE, kodi::GetLocalizedString(30104));
+    m_teleBoy->UpdateConnectionState("Not reachable", PVR_CONNECTION_STATE_CONNECTING, kodi::GetLocalizedString(30104));
     m_nextLoginAttempt = std::time(0) + 60;
     return false;
   }
@@ -185,7 +188,7 @@ void Session::Reset()
 {
   m_isConnected = false;
   m_httpClient->ClearSession();
-  m_teleBoy->UpdateConnectionState("Teleboy session expired", PVR_CONNECTION_STATE_DISCONNECTED, "");
+  m_teleBoy->UpdateConnectionState("Teleboy session expired", PVR_CONNECTION_STATE_CONNECTING, "");
 }
 
 ADDON_STATUS Session::SetSetting(const std::string& settingName, const kodi::CSettingValue& settingValue)

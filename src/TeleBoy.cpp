@@ -47,11 +47,16 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
 
 bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
 {
-  string content;
-  int statusCode;
   if (!m_session->IsConnected()) {
     return false;
   }
+  return ApiGetWithoutConnectedCheck(url, doc, timeout);
+}
+
+bool TeleBoy::ApiGetWithoutConnectedCheck(string url, Document &doc, time_t timeout)
+{
+  string content;
+  int statusCode;
   if (timeout > 0) {
     content = m_httpClient->HttpGetCached(apiUrl + url, timeout, statusCode);
   } else {
@@ -82,6 +87,7 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
 
 TeleBoy::TeleBoy()
 {
+  UpdateConnectionState("Initializing", PVR_CONNECTION_STATE_CONNECTING, "");
   m_parameterDB = new ParameterDB(UserPath());
   m_httpClient = new HttpClient(m_parameterDB);
   m_session = new Session(m_httpClient, this);
@@ -90,10 +96,11 @@ TeleBoy::TeleBoy()
 
 TeleBoy::~TeleBoy()
 {
-  for (auto const &updateThread : updateThreads)
+  for (auto updateThread : updateThreads)
   {
     delete updateThread;
   }
+  delete m_session;
   delete m_httpClient;
   delete m_parameterDB;
 }
@@ -120,15 +127,15 @@ ADDON_STATUS TeleBoy::GetStatus() {
   return ADDON_STATUS_OK;
 }
 
-void TeleBoy::SessionInitialized()
+bool TeleBoy::SessionInitialized()
 {
   while (updateThreads.size() < 3)
   {
     updateThreads.emplace_back(new UpdateThread(updateThreads.size(), *this, *m_session));
   }
 
-  LoadChannels();
   LoadGenres();
+  return LoadChannels();
 }
 
 PVR_ERROR TeleBoy::GetCapabilities(kodi::addon::PVRCapabilities& capabilities)
@@ -171,7 +178,7 @@ PVR_ERROR TeleBoy::GetConnectionString(std::string& connection)
 void TeleBoy::LoadGenres()
 {
   Document json;
-  if (!ApiGet("/epg/genres", json, 3600))
+  if (!ApiGetWithoutConnectedCheck("/epg/genres", json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading genres.");
     return;
@@ -207,7 +214,7 @@ void TeleBoy::LoadGenres()
 bool TeleBoy::LoadChannels()
 {
   Document json;
-  if (!ApiGet("/epg/stations?expand=logos&language=de", json, 3600))
+  if (!ApiGetWithoutConnectedCheck("/epg/stations?expand=logos&language=de", json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading channels.");
     return false;
@@ -229,7 +236,7 @@ bool TeleBoy::LoadChannels()
     channelsById[channel.id] = channel;
   }
 
-  if (!ApiGet("/users/" + m_session->GetUserId() + "/stations", json, 3600))
+  if (!ApiGetWithoutConnectedCheck("/users/" + m_session->GetUserId() + "/stations", json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading sorted channels.");
     return false;
