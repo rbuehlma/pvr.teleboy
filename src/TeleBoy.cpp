@@ -120,13 +120,6 @@ void TeleBoy::UpdateConnectionState(const std::string& connectionString, PVR_CON
   kodi::addon::CInstancePVRClient::ConnectionStateChange(connectionString, newState, message);
 }
 
-ADDON_STATUS TeleBoy::GetStatus() {
-  if (!m_session->IsConnected()) {
-    return ADDON_STATUS_LOST_CONNECTION;
-  }
-  return ADDON_STATUS_OK;
-}
-
 bool TeleBoy::SessionInitialized()
 {
   while (updateThreads.size() < 3)
