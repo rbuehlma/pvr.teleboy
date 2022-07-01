@@ -50,11 +50,14 @@ void Session::LoginThread() {
     kodi::Log(ADDON_LOG_DEBUG, "Login Teleboy");
     if (Login(teleboyUsername, teleboyPassword))
     {
+      if (!m_teleBoy->SessionInitialized()) {
+        m_nextLoginAttempt = std::time(0) + 60;
+        continue;
+      }
+      m_isConnected = true;
       kodi::Log(ADDON_LOG_DEBUG, "Login done");
       m_teleBoy->UpdateConnectionState("Teleboy connection established", PVR_CONNECTION_STATE_CONNECTED, "");
       kodi::QueueNotification(QUEUE_INFO, "", kodi::addon::GetLocalizedString(30105));
-      m_isConnected = true;
-      
     }
     else
     {
@@ -105,7 +108,8 @@ bool Session::Login(string u, string p)
     if (statusCode == 429) {
       m_teleBoy->UpdateConnectionState("Rate limit reached.", PVR_CONNECTION_STATE_ACCESS_DENIED, kodi::addon::GetLocalizedString(30103));
       kodi::Log(ADDON_LOG_ERROR, "Rate limit reached.");
-      m_nextLoginAttempt = std::time(0) + 60 * 60 * 2;      
+      m_nextLoginAttempt = std::time(0) + 60 * 60 * 2;
+      return false;
     }
     if (statusCode >= 400) {
       m_teleBoy->UpdateConnectionState("Login failed", PVR_CONNECTION_STATE_ACCESS_DENIED, kodi::addon::GetLocalizedString(30101));
@@ -135,6 +139,7 @@ bool Session::Login(string u, string p)
   if (pos == std::string::npos || pos1 > pos + 50)
   {
     kodi::Log(ADDON_LOG_ERROR, "No api key found.");
+    m_nextLoginAttempt = std::time(0) + 60 * 60;
     return false;
   }
   size_t endPos = result.find("'", pos1);
@@ -142,6 +147,7 @@ bool Session::Login(string u, string p)
   {
     kodi::Log(ADDON_LOG_DEBUG, "Got HTML body: %s", result.c_str());
     kodi::Log(ADDON_LOG_ERROR, "Received api key is invalid.");
+    m_nextLoginAttempt = std::time(0) + 60 * 60;
     return false;
   }
   m_httpClient->SetApiKey(result.substr(pos1, endPos - pos1));
@@ -150,6 +156,7 @@ bool Session::Login(string u, string p)
   if (pos == std::string::npos)
   {
     kodi::Log(ADDON_LOG_ERROR, "No user settings found.");
+    m_nextLoginAttempt = std::time(0) + 60 * 60;
     return false;
   }
   pos += 6;
@@ -158,6 +165,7 @@ bool Session::Login(string u, string p)
   {
     kodi::Log(ADDON_LOG_DEBUG, "Got HTML body: %s", result.c_str());
     kodi::Log(ADDON_LOG_ERROR, "Received userId is invalid.");
+    m_nextLoginAttempt = std::time(0) + 60 * 60;
     return false;
   }
   m_userId = result.substr(pos, endPos - pos);
@@ -167,12 +175,12 @@ bool Session::Login(string u, string p)
   if (!m_isPlusMember) {
     kodi::Log(ADDON_LOG_INFO, "Free accounts are not supported.", m_userId.c_str());
     kodi::QueueNotification(QUEUE_ERROR, "", kodi::addon::GetLocalizedString(30102));
+    m_nextLoginAttempt = std::time(0) + 60 * 60;
     return false;
   }
   kodi::Log(ADDON_LOG_DEBUG, "Got userId: %s.", m_userId.c_str());
   
   m_httpClient->AddHeader("Content-Type", "application/json");
-  m_teleBoy->SessionInitialized();
   return true;
 }
 
@@ -180,7 +188,7 @@ void Session::Reset()
 {
   m_isConnected = false;
   m_httpClient->ClearSession();
-  m_teleBoy->UpdateConnectionState("Teleboy session expired", PVR_CONNECTION_STATE_DISCONNECTED, "");
+  m_teleBoy->UpdateConnectionState("Teleboy session expired", PVR_CONNECTION_STATE_CONNECTING, "");
 }
 
 ADDON_STATUS Session::SetSetting(const std::string& settingName, const kodi::addon::CSettingValue& settingValue)
@@ -205,8 +213,4 @@ bool Session::VerifySettings() {
 }
 
 void Session::ErrorStatusCode (int statusCode) {
-  if (statusCode == 403) {
-    kodi::Log(ADDON_LOG_WARNING, "Got status code 403. Reset session.");
-    Reset();
-  }
 }

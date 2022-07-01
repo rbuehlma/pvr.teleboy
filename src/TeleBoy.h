@@ -66,8 +66,9 @@ public:
         std::vector<kodi::addon::PVRStreamProperty>& properties) override;
   PVR_ERROR GetEPGTagEdl(const kodi::addon::PVREPGTag& tag,
         std::vector<kodi::addon::PVREDLEntry>& edl) override;
+  ADDON_STATUS GetStatus() override;
   void UpdateConnectionState(const std::string& connectionString, PVR_CONNECTION_STATE newState, const std::string& message);
-  virtual void SessionInitialized();
+  bool SessionInitialized();
 
 private:
   map<int, TeleBoyChannel> channelsById;
@@ -83,6 +84,7 @@ private:
   virtual string FormatDate(time_t dateTime);
   virtual bool ApiGetResult(string content, Document &doc);
   virtual bool ApiGet(string url, Document &doc, time_t cacheDuration);
+  virtual bool ApiGetWithoutConnectedCheck(string url, Document &doc, time_t timeout);
   virtual bool ApiPost(string url, string postData, Document &doc);
   virtual bool ApiDelete(string url, Document &doc);
   virtual string FollowRedirect(string url);
