@@ -88,10 +88,6 @@ std::string Curl::Request(const std::string& action, const std::string& url, con
   std::string::size_type posResponseCode = proto.find(' ');
   if (posResponseCode != std::string::npos)
     statusCode = atoi(proto.c_str() + (posResponseCode + 1));
-  
-  if (statusCode >= 400) {
-    return "";
-  }
 
   const std::vector<std::string> values = file.GetPropertyValues(ADDON_FILE_PROPERTY_RESPONSE_HEADER, "set-cookie");
   for (const auto& value : values)

@@ -103,7 +103,7 @@ std::string HttpClient::HttpRequest(const std::string& action, const std::string
     if (m_statusCodeHandler != nullptr) {
       m_statusCodeHandler->ErrorStatusCode(statusCode);
     }
-    return "";
+    return content;
   }
   std::string cinergys = curl.GetCookie("cinergy_s");
   if (!cinergys.empty() && cinergys != m_cinergyS && cinergys != "deleted")
