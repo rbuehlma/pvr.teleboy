@@ -1,4 +1,5 @@
 v20.2.1
+ - Fix session timeout handling
  - Support drm
  - Depend on InputStream Helper addon for DRM protection
  - Fix account check
