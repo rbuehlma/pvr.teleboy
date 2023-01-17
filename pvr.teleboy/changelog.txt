@@ -1,3 +1,5 @@
+v20.3.3
+- Fix segfault during addon creation (this time with actual change)
 v20.3.2
 - Fix segfault during addon creation
 v20.3.1

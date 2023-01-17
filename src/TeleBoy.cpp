@@ -87,11 +87,12 @@ bool TeleBoy::ApiDelete(string url, Document &doc)
 
 TeleBoy::TeleBoy()
 {
-  UpdateConnectionState("Initializing", PVR_CONNECTION_STATE_CONNECTING, "");
   m_parameterDB = new ParameterDB(UserPath());
   m_httpClient = new HttpClient(m_parameterDB);
   m_session = new Session(m_httpClient, this);
   m_httpClient->SetStatusCodeHandler(m_session);
+  
+  UpdateConnectionState("Initializing", PVR_CONNECTION_STATE_CONNECTING, "");
 }
 
 TeleBoy::~TeleBoy()
