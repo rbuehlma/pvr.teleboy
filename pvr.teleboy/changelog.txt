@@ -1,3 +1,5 @@
+v20.3.2
+- Fix segfault during addon creation
 v20.3.1
 - Rebuild for Kodi Nexus
 v20.3.0
