@@ -1,6 +1,6 @@
 [![License: GPL-2.0-or-later](https://img.shields.io/badge/License-GPL%20v2+-blue.svg)](LICENSE.md)
 [![Build and run tests](https://github.com/rbuehlma/pvr.teleboy/actions/workflows/build.yml/badge.svg?branch=Omega)](https://github.com/rbuehlma/pvr.teleboy/actions/workflows/build.yml)
-[![Build Status](https://jenkins.kodi.tv/view/Addons/job/kodi-pvr/job/pvr.teleboy/job/Omega/badge/icon)](https://jenkins.kodi.tv/blue/organizations/jenkins/rbuehlma%2Fpvr.teleboy/branches/)
+[![Build Status](https://jenkins.kodi.tv/view/Addons/job/rbuehlma/job/pvr.teleboy/job/Omega/badge/icon)](https://jenkins.kodi.tv/blue/organizations/jenkins/rbuehlma%2Fpvr.teleboy/branches/)
 
 # Teleboy PVR addon for Kodi
 
