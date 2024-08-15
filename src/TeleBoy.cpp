@@ -339,7 +339,7 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
   return PVR_ERROR_NO_ERROR;
 }
 
-PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, std::vector<kodi::addon::PVRStreamProperty>& properties)
+PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& channel, PVR_SOURCE source, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
   if (!m_session->IsConnected()) {
     return PVR_ERROR_SERVER_ERROR;
