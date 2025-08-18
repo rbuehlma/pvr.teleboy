@@ -1,0 +1,1 @@
+sqlite3 http://mirrors.kodi.tv/build-deps/sources/sqlite-autoconf-3390400.tar.gz
