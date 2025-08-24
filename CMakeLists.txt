@@ -6,15 +6,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 find_package(PkgConfig)
 find_package(Kodi REQUIRED)
 find_package(RapidJSON REQUIRED)
+find_package(Sqlite3 REQUIRED)
 
 include_directories(${KODI_INCLUDE_DIR}
                     ${RAPIDJSON_INCLUDE_DIRS}
-                    ${PROJECT_SOURCE_DIR}/lib
+                    ${SQLITE3_INCLUDE_DIRS}
 )
 
-add_subdirectory(lib/sqlite)
-
-set(DEPLIBS sqlite
+set(DEPLIBS ${SQLITE3_LIBRARIES}
 )
 
 set(TELEBOY_SOURCES
