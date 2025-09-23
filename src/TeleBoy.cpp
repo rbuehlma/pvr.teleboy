@@ -226,7 +226,7 @@ bool TeleBoy::LoadChannels()
     TeleBoyChannel channel;
     channel.id = c["id"].GetInt();
     channel.name = GetStringOrEmpty(c, "name");
-    channel.logoPath = "https://www.teleboy.ch/assets/stations/"
+    channel.logoPath = "https://static.teleboy.ch/shared/stations/"
         + to_string(channel.id) + "/icon320_dark.png";
     channelsById[channel.id] = channel;
   }
