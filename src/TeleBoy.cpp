@@ -321,7 +321,6 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
 
   properties.emplace_back(PVR_STREAM_PROPERTY_STREAMURL, url);
   properties.emplace_back(PVR_STREAM_PROPERTY_INPUTSTREAM, "inputstream.adaptive");
-  properties.emplace_back("inputstream.adaptive.manifest_type", "mpd");
   properties.emplace_back("inputstream.adaptive.manifest_update_parameter", "full");
   properties.emplace_back(PVR_STREAM_PROPERTY_MIMETYPE, "application/xml+dash");
   properties.emplace_back(PVR_STREAM_PROPERTY_ISREALTIMESTREAM, realtime ? "true" : "false");
@@ -330,8 +329,7 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
     string drmType = GetStringOrEmpty(stream["drm"], "type");
     if (drmType == "widevine") {
       string licenseUrl = GetStringOrEmpty(stream["drm"], "license_url");
-      properties.emplace_back("inputstream.adaptive.license_key", licenseUrl + "||A{SSM}|");
-      properties.emplace_back("inputstream.adaptive.license_type", "com.widevine.alpha"); 
+      properties.emplace_back("inputstream.adaptive.drm_legacy", "com.widevine.alpha|" + licenseUrl + "||A{SSM}|");
     } else {
       kodi::Log(ADDON_LOG_ERROR, "Unsupported drm type: %s.", drmType.c_str());
     }      
