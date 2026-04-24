@@ -91,7 +91,7 @@ TeleBoy::TeleBoy()
   m_httpClient = new HttpClient(m_parameterDB);
   m_session = new Session(m_httpClient, this);
   m_httpClient->SetStatusCodeHandler(m_session);
-  
+
   UpdateConnectionState("Initializing", PVR_CONNECTION_STATE_CONNECTING, "");
 }
 
@@ -325,16 +325,16 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
   properties.emplace_back("inputstream.adaptive.manifest_update_parameter", "full");
   properties.emplace_back(PVR_STREAM_PROPERTY_MIMETYPE, "application/xml+dash");
   properties.emplace_back(PVR_STREAM_PROPERTY_ISREALTIMESTREAM, realtime ? "true" : "false");
-      
+
   if (stream.HasMember("drm")) {
     string drmType = GetStringOrEmpty(stream["drm"], "type");
     if (drmType == "widevine") {
       string licenseUrl = GetStringOrEmpty(stream["drm"], "license_url");
       properties.emplace_back("inputstream.adaptive.license_key", licenseUrl + "||A{SSM}|");
-      properties.emplace_back("inputstream.adaptive.license_type", "com.widevine.alpha"); 
+      properties.emplace_back("inputstream.adaptive.license_type", "com.widevine.alpha");
     } else {
       kodi::Log(ADDON_LOG_ERROR, "Unsupported drm type: %s.", drmType.c_str());
-    }      
+    }
   }
   return PVR_ERROR_NO_ERROR;
 }
@@ -523,7 +523,7 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
       tag.SetIsDeleted(false);
       tag.SetRecordingId(to_string(item["id"].GetInt()));
       tag.SetTitle(GetStringOrEmpty(item, "title"));
-      tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));      
+      tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));
       tag.SetPlot(GetStringOrEmpty(item, "description"));
       tag.SetPlotOutline(GetStringOrEmpty(item, "short_description"));
       tag.SetChannelUid(item["station_id"].GetInt());
@@ -759,11 +759,20 @@ PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, 
 
 PVR_ERROR TeleBoy::GetEPGTagEdl(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVREDLEntry>& edl)
 {
-  kodi::addon::PVREDLEntry entry;
-  entry.SetStart(0);
-  entry.SetEnd(300000);
-  entry.SetType(PVR_EDL_TYPE_COMBREAK);
-  edl.emplace_back(entry);
+  kodi::addon::PVREDLEntry entry_start;
+  entry_start.SetStart(0);
+  entry_start.SetEnd(300000);
+  entry_start.SetType(PVR_EDL_TYPE_COMBREAK);
+  edl.emplace_back(entry_start);
+
+  kodi::addon::PVREDLEntry entry_end;
+  time_t duration = (tag.GetEndTime() - tag.GetStartTime() + 1) * 1000;
+  entry_end.SetStart(300000 + duration);
+  // We don't know the actual end time of the stream, so we just use a large value (1 day) that should be long enough in all cases.
+  entry_end.SetEnd(24 * 3600 * 1000);
+  entry_end.SetType(PVR_EDL_TYPE_COMBREAK);
+  edl.emplace_back(entry_end);
+
   return PVR_ERROR_NO_ERROR;
 }
 
