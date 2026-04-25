@@ -1,3 +1,5 @@
+v21.0.2
+- Skip overlapping  content in replay mode
 v21.0.1
 - Update channel logo path
 v21.0.0
