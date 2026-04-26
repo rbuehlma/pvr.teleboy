@@ -98,4 +98,6 @@ private:
   PVR_ERROR SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties,
         const Value& stream, bool realtime);
   void AddTimerType(std::vector<kodi::addon::PVRTimerType>& types, int idx, int attributes);
+  PVR_ERROR FetchJsonForStream(const std::string& streamId, rapidjson::Document& json);
+  void AddCommercialBreaks(const std::string& streamId, std::vector<kodi::addon::PVREDLEntry>& edl);
 };

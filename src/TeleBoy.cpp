@@ -562,18 +562,10 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
 
 PVR_ERROR TeleBoy::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  if (!m_session->IsConnected()) {
-    return PVR_ERROR_SERVER_ERROR;
-  }
-
-  PVR_ERROR ret = PVR_ERROR_FAILED;
-
   Document json;
-  if (!ApiGet("/users/" + m_session->GetUserId() + "/stream/" + recording.GetRecordingId() + "?" + GetStreamParameters(), json, 0))
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Could not get URL for recording: %s.",
-        recording.GetRecordingId().c_str());
-    return ret;
+  PVR_ERROR err = FetchJsonForStream(recording.GetRecordingId(), json);
+  if (err != PVR_ERROR_NO_ERROR) {
+    return err;
   }
   const Value& stream = json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
@@ -586,6 +578,8 @@ PVR_ERROR TeleBoy::GetRecordingEdl(const kodi::addon::PVRRecording& recording, s
   entry.SetEnd(300000);
   entry.SetType(PVR_EDL_TYPE_COMBREAK);
   edl.emplace_back(entry);
+
+  AddCommercialBreaks(recording.GetRecordingId(), edl);
   return PVR_ERROR_NO_ERROR;
 }
 
@@ -739,19 +733,10 @@ PVR_ERROR TeleBoy::IsEPGTagRecordable(const kodi::addon::PVREPGTag& tag, bool& i
 
 PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  if (!m_session->IsConnected()) {
-    return PVR_ERROR_SERVER_ERROR;
-  }
-
-  PVR_ERROR ret = PVR_ERROR_FAILED;
-
   Document json;
-  if (!ApiGet(
-      "/users/" + m_session->GetUserId() + "/stream/"+ to_string(tag.GetUniqueBroadcastId()) + "?" + GetStreamParameters()
-          , json, 0))
-  {
-    kodi::Log(ADDON_LOG_ERROR, "Could not get URL for epg tag.");
-    return ret;
+  PVR_ERROR err = FetchJsonForStream(to_string(tag.GetUniqueBroadcastId()), json);
+  if (err != PVR_ERROR_NO_ERROR) {
+    return err;
   }
   const Value& stream = json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
@@ -773,6 +758,7 @@ PVR_ERROR TeleBoy::GetEPGTagEdl(const kodi::addon::PVREPGTag& tag, std::vector<k
   entry_end.SetType(PVR_EDL_TYPE_COMBREAK);
   edl.emplace_back(entry_end);
 
+  AddCommercialBreaks(to_string(tag.GetUniqueBroadcastId()), edl);
   return PVR_ERROR_NO_ERROR;
 }
 
@@ -789,6 +775,52 @@ std::string TeleBoy::GetStreamParameters() {
   std::string params = m_session->GetEnableDolby() ? "&dolby=1" : "";
   params += "&https=1&streamformat=dash";
   return params;
+}
+
+PVR_ERROR TeleBoy::FetchJsonForStream(const std::string& streamId, Document& json)
+{
+  if (!m_session->IsConnected()) {
+    return PVR_ERROR_SERVER_ERROR;
+  }
+  if (!ApiGet("/users/" + m_session->GetUserId() + "/stream/" + streamId + "?" + GetStreamParameters(), json, 0)) {
+    kodi::Log(ADDON_LOG_ERROR, "Could not get JSON data for: %s.", streamId.c_str());
+    return PVR_ERROR_FAILED;
+  }
+  return PVR_ERROR_NO_ERROR;
+}
+
+void TeleBoy::AddCommercialBreaks(const std::string& streamId, std::vector<kodi::addon::PVREDLEntry>& edl)
+{
+  if (!m_session->GetSkipCommercials()) {
+    return;
+  }
+
+  Document json;
+  PVR_ERROR err = FetchJsonForStream(streamId, json);
+  if (err != PVR_ERROR_NO_ERROR) {
+    return;
+  }
+  const Value& stream = json["data"]["stream"];
+
+  if (stream.HasMember("schedule") && stream["schedule"].IsArray()) {
+    const Value& schedule = stream["schedule"];
+    for (Value::ConstValueIterator sched_itr = schedule.Begin(); sched_itr != schedule.End(); ++sched_itr) {
+      const Value& schedule_item = (*sched_itr);
+      if (schedule_item.HasMember("ad_breaks") && schedule_item["ad_breaks"].IsArray()) {
+        const Value& ad_breaks = schedule_item["ad_breaks"];
+        for (Value::ConstValueIterator ad_itr = ad_breaks.Begin(); ad_itr != ad_breaks.End(); ++ad_itr) {
+          const Value& ad_break = (*ad_itr);
+          if (ad_break.HasMember("start") && ad_break.HasMember("end")) {
+            kodi::addon::PVREDLEntry entry;
+            entry.SetStart(ad_break["start"].GetInt() + 5000);
+            entry.SetEnd(ad_break["end"].GetInt() - 5000);
+            entry.SetType(PVR_EDL_TYPE_COMBREAK);
+            edl.emplace_back(entry);
+          }
+        }
+      }
+    }
+  }
 }
 
 ADDONCREATOR(TeleBoy)

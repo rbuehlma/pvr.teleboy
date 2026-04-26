@@ -46,6 +46,7 @@ void Session::LoginThread() {
     std::string teleboyPassword = kodi::addon::GetSettingString("password");
     m_favoritesOnly = kodi::addon::GetSettingBoolean("favoritesonly");
     m_enableDolby = kodi::addon::GetSettingBoolean("enableDolby");
+    m_skipCommercials = kodi::addon::GetSettingBoolean("skipCommercials");
     
     kodi::Log(ADDON_LOG_DEBUG, "Login Teleboy");
     if (Login(teleboyUsername, teleboyPassword))
