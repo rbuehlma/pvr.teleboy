@@ -1,3 +1,7 @@
+v21.0.4
+- Translations updates from Weblate
+	- de_de, en_gb
+
 v21.0.3
 - Add an option to skip commercial breaks
 v21.0.2
