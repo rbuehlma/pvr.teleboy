@@ -28,6 +28,9 @@ public:
   bool GetEnableDolby() {
     return m_enableDolby;
   }
+  bool GetSkipCommercials() {
+    return m_skipCommercials;
+  }
   bool GetIsPaidMember() {
     return m_isPlusMember || m_isComfortMember;
   }
@@ -46,6 +49,7 @@ private:
   bool m_isPlusMember = false;
   bool m_isComfortMember = false;
   bool m_enableDolby = false;
+  bool m_skipCommercials = false;
   bool m_favoritesOnly = false;
   int64_t m_maxRecallSeconds = 60 * 60 * 24 * 7;
   time_t m_nextLoginAttempt = 0;
