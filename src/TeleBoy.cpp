@@ -396,7 +396,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
     Document json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/broadcasts?begin=" + FormatDate(iStart)
-            + "+00:00:00&end=" + FormatDate(iEnd + 60 * 60 * 24) + "+00:00:00&expand=logos&limit=500&skip="
+            + "+00:00:00&end=" + FormatDate(iEnd + 60 * 60 * 24) + "+00:00:00&expand=logos,primary_image&limit=500&skip="
             + to_string(sum) + "&sort=station&station="
             + to_string(uniqueChannelId), json, 60*60*24))
     {
@@ -429,7 +429,11 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
       tag.SetWriter(""); /* not supported */
       tag.SetYear(item.HasMember("year") ? item["year"].GetInt() : 0);
       tag.SetIMDBNumber(""); /* not supported */
-      tag.SetIconPath(""); /* not supported */
+      if (item.HasMember("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
+        tag.SetIconPath("https://media.teleboy.ch/media/teleboyteaser12/" + GetStringOrEmpty(item["primary_image"], "hash") + ".jpg");
+      } else {
+        tag.SetIconPath("");
+      }
       tag.SetParentalRating(0); /* not supported */
       tag.SetStarRating(0); /* not supported */
       tag.SetSeriesNumber(
@@ -528,6 +532,9 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
       tag.SetPlotOutline(GetStringOrEmpty(item, "short_description"));
       tag.SetChannelUid(item["station_id"].GetInt());
       tag.SetIconPath(channelsById[tag.GetChannelUid()].logoPath);
+      if (item.HasMember("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
+        tag.SetThumbnailPath("https://media.teleboy.ch/media/teleboyteaser12/" + GetStringOrEmpty(item["primary_image"], "hash") + ".jpg");
+      }
       tag.SetChannelName(channelsById[tag.GetChannelUid()].name);
       tag.SetRecordingTime(Utils::StringToTime(GetStringOrEmpty(item, "begin")));
       time_t endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
