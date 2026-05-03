@@ -10,6 +10,7 @@
 const time_t maximumUpdateInterval = 600;
 
 std::queue<EpgQueueEntry> UpdateThread::loadEpgQueue;
+std::deque<unsigned int> UpdateThread::loadEpgBroadcastQueue;
 time_t UpdateThread::nextRecordingsUpdate;
 std::mutex UpdateThread::mutex;
 
@@ -56,6 +57,17 @@ void UpdateThread::LoadEpg(int uniqueChannelId, time_t startTime,
   loadEpgQueue.push(entry);
 }
 
+void UpdateThread::LoadEpgForBroadcast(unsigned int uniqueBroadcastId) {
+  std::lock_guard<std::mutex> lock(mutex);
+  loadEpgBroadcastQueue.push_back(uniqueBroadcastId);
+
+  // If there are more than 100 entries in the queue, the user was probably just scrolling through the EPG. To avoid making too many requests to the teleboy API,
+  // we drop the oldest entries, as they are likely less relevant to the user than the newer ones.
+  if (loadEpgBroadcastQueue.size() > 100) {
+    loadEpgBroadcastQueue.pop_front();
+  }
+}
+
 void UpdateThread::Process()
 {
   kodi::Log(ADDON_LOG_DEBUG, "Update thread started.");
@@ -81,6 +93,19 @@ void UpdateThread::Process()
         lock.unlock();
         m_teleboy.GetEPGForChannelAsync(entry.uniqueChannelId,
             entry.startTime, entry.endTime);
+      }
+    }
+
+    while (!loadEpgBroadcastQueue.empty())
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      if (!loadEpgBroadcastQueue.empty())
+      {
+        // We process the most-recently added entries first, as they are likely more relevant to the user.
+        unsigned int uniqueBroadcastId = loadEpgBroadcastQueue.back();
+        loadEpgBroadcastQueue.pop_back();
+        lock.unlock();
+        m_teleboy.GetEPGForBroadcastAsync(uniqueBroadcastId);
       }
     }
 

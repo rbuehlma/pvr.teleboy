@@ -1,3 +1,5 @@
+v21.0.5
+- Add detailed EPG descriptions
 v21.0.4
 - Add EPG images
 v21.0.3

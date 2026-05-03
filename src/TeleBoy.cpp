@@ -354,6 +354,11 @@ PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& cha
         channel.GetUniqueId());
     return PVR_ERROR_FAILED;
   }
+
+  UpdateEPGFromJson(json["data"]["epg"]["last"], true);
+  UpdateEPGFromJson(json["data"]["epg"]["current"], true);
+  UpdateEPGFromJson(json["data"]["epg"]["next"], true);
+
   const Value& stream = json["data"]["stream"];
   return SetStreamProperties(properties, stream, true);
 
@@ -414,55 +419,78 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
     {
       const Value& item = (*itr1);
       sum++;
-      kodi::addon::PVREPGTag tag;
+      UpdateEPGFromJson(item, false);
 
-      tag.SetUniqueBroadcastId(item["id"].GetInt());
-      tag.SetTitle(GetStringOrEmpty(item, "title"));
-      tag.SetUniqueChannelId(uniqueChannelId);
-      tag.SetStartTime(Utils::StringToTime(GetStringOrEmpty(item, "begin")));
-      tag.SetEndTime(Utils::StringToTime(GetStringOrEmpty(item, "end")));
-      tag.SetPlotOutline(GetStringOrEmpty(item, "headline"));
-      tag.SetPlot(GetStringOrEmpty(item, "short_description"));
-      tag.SetOriginalTitle(GetStringOrEmpty(item, "original_title"));
-      tag.SetCast(""); /* not supported */
-      tag.SetDirector(""); /*SA not supported */
-      tag.SetWriter(""); /* not supported */
-      tag.SetYear(item.HasMember("year") ? item["year"].GetInt() : 0);
-      tag.SetIMDBNumber(""); /* not supported */
-      if (item.HasMember("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
-        tag.SetIconPath("https://media.teleboy.ch/media/teleboyteaser12/" + GetStringOrEmpty(item["primary_image"], "hash") + ".jpg");
-      } else {
-        tag.SetIconPath("");
-      }
-      tag.SetParentalRating(0); /* not supported */
-      tag.SetStarRating(0); /* not supported */
-      tag.SetSeriesNumber(
-          item.HasMember("serie_season") ? item["serie_season"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE);
-      tag.SetEpisodeNumber(
-          item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE);
-      tag.SetEpisodePartNumber(EPG_TAG_INVALID_SERIES_EPISODE); /* not supported */
-      tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));
-      if (item.HasMember("genre_id")) {
-        int genreId = item["genre_id"].GetInt();
-        TeleboyGenre genre = genresById[genreId];
-        int kodiGenre = m_categories.Category(genre.nameEn);
-        if (kodiGenre == 0) {
-          tag.SetGenreType(EPG_GENRE_USE_STRING);
-          tag.SetGenreSubType(0);
-          tag.SetGenreDescription(genre.name);
-        } else {
-          tag.SetGenreSubType(kodiGenre & 0x0F);
-          tag.SetGenreType(kodiGenre & 0xF0);
-        }
-      }
-      tag.SetFlags(EPG_TAG_FLAG_UNDEFINED);
-
-      EpgEventStateChange(tag, EPG_EVENT_CREATED);
     }
     kodi::Log(ADDON_LOG_DEBUG, "Loaded %i of %i epg entries for channel %i.", sum,
         totals, uniqueChannelId);
   }
   return;
+}
+
+void TeleBoy::GetEPGForBroadcastAsync(const unsigned int uniqueBroadcastId) {
+  Document json;
+  if (!ApiGet("/users/" + m_session->GetUserId() + "/broadcasts/" + to_string(uniqueBroadcastId) + "?expand=primary_image,flags", json, 60*60)) {
+    kodi::Log(ADDON_LOG_ERROR, "Error getting epg description for broadcast %i.", uniqueBroadcastId);
+    return;
+  }
+
+  UpdateEPGFromJson(json["data"], true);
+}
+
+void TeleBoy::UpdateEPGFromJson(const Value& item, bool isDetailedEPGData) {
+  kodi::addon::PVREPGTag tag;
+
+  tag.SetUniqueBroadcastId(item["id"].GetInt());
+  tag.SetTitle(GetStringOrEmpty(item, "title"));
+  tag.SetUniqueChannelId(item["station_id"].GetInt());
+  tag.SetStartTime(Utils::StringToTime(GetStringOrEmpty(item, "begin")));
+  tag.SetEndTime(Utils::StringToTime(GetStringOrEmpty(item, "end")));
+  tag.SetPlotOutline(GetStringOrEmpty(item, "headline"));
+  if (isDetailedEPGData) {
+    // We add a zero-width space at the end to mark that the detailed description for this EPG entry has been loaded.
+    // Instead of using the isDetailedEPGData parameter, we could in theory also check whether item has a "description" field. However, there are EPG entries
+    // that do not have a description field, even though they are detailed EPG entries. In these cases, we still want to add the zero-width space marker to make
+    // sure we do not repeatedly try to request the detailed description for this EPG entry.
+    tag.SetPlot(GetStringOrEmpty(item, "description") + "\u200B");
+  } else {
+    tag.SetPlot(GetStringOrEmpty(item, "short_description"));
+  }
+  tag.SetOriginalTitle(GetStringOrEmpty(item, "original_title"));
+  tag.SetCast(""); /* not supported */
+  tag.SetDirector(""); /*SA not supported */
+  tag.SetWriter(""); /* not supported */
+  tag.SetYear(item.HasMember("year") ? item["year"].GetInt() : 0);
+  tag.SetIMDBNumber(""); /* not supported */
+  if (item.HasMember("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
+    tag.SetIconPath("https://media.teleboy.ch/media/teleboyteaser12/" + GetStringOrEmpty(item["primary_image"], "hash") + ".jpg");
+  } else {
+    tag.SetIconPath("");
+  }
+  tag.SetParentalRating(0); /* not supported */
+  tag.SetStarRating(0); /* not supported */
+  tag.SetSeriesNumber(
+      item.HasMember("serie_season") ? item["serie_season"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE);
+  tag.SetEpisodeNumber(
+      item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE);
+  tag.SetEpisodePartNumber(EPG_TAG_INVALID_SERIES_EPISODE); /* not supported */
+  tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));
+  if (item.HasMember("genre_id")) {
+    int genreId = item["genre_id"].GetInt();
+    TeleboyGenre genre = genresById[genreId];
+    int kodiGenre = m_categories.Category(genre.nameEn);
+    if (kodiGenre == 0) {
+      tag.SetGenreType(EPG_GENRE_USE_STRING);
+      tag.SetGenreSubType(0);
+      tag.SetGenreDescription(genre.name);
+    } else {
+      tag.SetGenreSubType(kodiGenre & 0x0F);
+      tag.SetGenreType(kodiGenre & 0xF0);
+    }
+  }
+  tag.SetFlags(EPG_TAG_FLAG_UNDEFINED);
+
+  EpgEventStateChange(tag, EPG_EVENT_CREATED);
 }
 
 string TeleBoy::FormatDate(time_t dateTime)
@@ -727,6 +755,14 @@ PVR_ERROR TeleBoy::IsEPGTagPlayable(const kodi::addon::PVREPGTag& tag, bool& isP
   time(&current_time);
   isPlayable = ((current_time - tag.GetEndTime()) < m_session->GetMaxRecallSeconds())
       && (tag.GetStartTime() < current_time);
+
+  // A zero-width space at the end of the 'plot' is used to mark that the detailed description has already been loaded previously. We do not load the detailed
+  // EPG entry again in this case to avoid making too many calls to the Teleboy API.
+  bool epg_description_already_loaded = (tag.GetPlot().length() >= 3 && tag.GetPlot().compare(tag.GetPlot().length() - 3, 3, "\u200B") == 0);
+  if (!epg_description_already_loaded && tag.GetUniqueBroadcastId() != 0) {
+    UpdateThread::LoadEpgForBroadcast(tag.GetUniqueBroadcastId());
+  }
+
   return PVR_ERROR_NO_ERROR;
 }
 
@@ -745,6 +781,11 @@ PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, 
   if (err != PVR_ERROR_NO_ERROR) {
     return err;
   }
+
+  UpdateEPGFromJson(json["data"]["epg"]["last"], true);
+  UpdateEPGFromJson(json["data"]["epg"]["current"], true);
+  UpdateEPGFromJson(json["data"]["epg"]["next"], true);
+
   const Value& stream = json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
 }

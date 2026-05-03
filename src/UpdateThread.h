@@ -22,6 +22,7 @@ public:
   ~UpdateThread();
   static void SetNextRecordingUpdate(time_t nextRecordingsUpdate);
   static void LoadEpg(int uniqueChannelId, time_t startTime, time_t endTime);
+  static void LoadEpgForBroadcast(unsigned int uniqueBroadcastId);
   void Process();
 
 private:
@@ -29,6 +30,7 @@ private:
   Session& m_session;
   int m_threadIdx;
   static std::queue<EpgQueueEntry> loadEpgQueue;
+  static std::deque<unsigned int> loadEpgBroadcastQueue;
   static time_t nextRecordingsUpdate;
   std::atomic<bool> m_running = {false};
   std::thread m_thread;
