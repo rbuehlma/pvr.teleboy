@@ -1,5 +1,6 @@
 v22.2.1
 - Fix deprecation warning
+- Merge changes from v21
 
 v22.2.0
 - PVR Add-on API v9.2.0
@@ -10,6 +11,16 @@ v22.1.0
 v22.0.0
 - Initial release for Piers (PVR Add-on API v8.4.0)
 
+v21.0.5
+- Add detailed EPG descriptions
+v21.0.4
+- Add EPG images
+v21.0.3
+- Add an option to skip commercial breaks
+v21.0.2
+- Skip overlapping  content in replay mode
+v21.0.1
+- Update channel logo path
 v21.0.0
 - Initial version for Omega
 v20.3.4

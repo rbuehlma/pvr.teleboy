@@ -60,6 +60,18 @@ msgctxt "#30007"
 msgid "General"
 msgstr "Allgemein"
 
+#. Boolean setting to skip commercial breaks
+#: pvr.teleboy/resources/settings.xml
+msgctxt "#30008"
+msgid "Skip commercial breaks"
+msgstr "Werbeunterbrechnungen überspringen"
+
+#. Help text to setting #30008
+#: pvr.teleboy/resources/settings.xml
+msgctxt "#30009"
+msgid "Add commercial breaks to the EDL."
+msgstr "Trägt Werbeunterbrechungen in der EDL ein."
+
 #. Notification message to show on screen if username or password not set
 #: src/TeleBoy.cpp
 msgctxt "#30100"

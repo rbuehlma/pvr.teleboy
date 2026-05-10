@@ -49,6 +49,7 @@ public:
   PVR_ERROR GetEPGForChannel(int channelUid, time_t start, time_t end,
         kodi::addon::PVREPGTagsResultSet& results) override;
   void GetEPGForChannelAsync(int uniqueChannelId, time_t iStart, time_t iEnd);
+  void GetEPGForBroadcastAsync(unsigned int uniqueBroadcastId);
   PVR_ERROR GetRecordingsAmount(bool deleted, int& amount) override;
   PVR_ERROR GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultSet& results) override;
   PVR_ERROR GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording,
@@ -99,4 +100,7 @@ private:
   PVR_ERROR SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties,
         const Value& stream, bool realtime);
   void AddTimerType(std::vector<kodi::addon::PVRTimerType>& types, int idx, int attributes);
+  PVR_ERROR FetchJsonForStream(const std::string& streamId, rapidjson::Document& json);
+  void AddCommercialBreaks(const std::string& streamId, std::vector<kodi::addon::PVREDLEntry>& edl);
+  void UpdateEPGFromJson(const Value& item, bool isDetailedEPGData);
 };
