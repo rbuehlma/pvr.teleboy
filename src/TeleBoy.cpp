@@ -12,8 +12,7 @@
 #include <map>
 #include <time.h>
 #include <random>
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
+#include <nlohmann/json.hpp>
 
 #include "kodi/General.h"
 #include "kodi/Filesystem.h"
@@ -23,21 +22,21 @@
 #endif
 
 using namespace std;
-using namespace rapidjson;
+using json = nlohmann::json;
 
 static const string apiUrl = "https://tv.api.teleboy.ch";
 std::mutex TeleBoy::sendEpgToKodiMutex;
 
-bool TeleBoy::ApiGetResult(string content, Document &doc)
+bool TeleBoy::ApiGetResult(string content, json& doc)
 {
-  doc.Parse(content.c_str());
-  if (!doc.GetParseError())
+  doc = json::parse(content, nullptr, false);
+  if (!doc.is_discarded())
   {
-    if (doc["success"].GetBool())
+    if (doc["success"].get<bool>())
     {
       return true;
     }
-    if (doc["error_code"].GetInt() == 10403) {
+    if (doc["error_code"].get<int>() == 10403) {
       kodi::Log(ADDON_LOG_WARNING, "Got error_code 10403. Reset session.");
       m_session->Reset();
     }
@@ -45,7 +44,7 @@ bool TeleBoy::ApiGetResult(string content, Document &doc)
   return false;
 }
 
-bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
+bool TeleBoy::ApiGet(string url, json& doc, time_t timeout)
 {
   if (!m_session->IsConnected()) {
     return false;
@@ -53,7 +52,7 @@ bool TeleBoy::ApiGet(string url, Document &doc, time_t timeout)
   return ApiGetWithoutConnectedCheck(url, doc, timeout);
 }
 
-bool TeleBoy::ApiGetWithoutConnectedCheck(string url, Document &doc, time_t timeout)
+bool TeleBoy::ApiGetWithoutConnectedCheck(string url, json& doc, time_t timeout)
 {
   string content;
   int statusCode;
@@ -65,7 +64,7 @@ bool TeleBoy::ApiGetWithoutConnectedCheck(string url, Document &doc, time_t time
   return ApiGetResult(content, doc);
 }
 
-bool TeleBoy::ApiPost(string url, string postData, Document &doc)
+bool TeleBoy::ApiPost(string url, string postData, json& doc)
 {
   int statusCode;
   if (!m_session->IsConnected()) {
@@ -75,7 +74,7 @@ bool TeleBoy::ApiPost(string url, string postData, Document &doc)
   return ApiGetResult(content, doc);
 }
 
-bool TeleBoy::ApiDelete(string url, Document &doc)
+bool TeleBoy::ApiDelete(string url, json& doc)
 {
   int statusCode;
   if (!m_session->IsConnected()) {
@@ -172,28 +171,28 @@ PVR_ERROR TeleBoy::GetConnectionString(std::string& connection)
 
 void TeleBoy::LoadGenres()
 {
-  Document genres_json;
+  json genres_json;
   if (!ApiGetWithoutConnectedCheck("/epg/genres", genres_json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading genres.");
     return;
   }
-  Value& genres = genres_json["data"]["items"];
+  const json& genres = genres_json["data"]["items"];
   for (const auto& genre : genres)
   {
     TeleboyGenre teleboyGenre;
-    int id = genre["id"].GetInt();
+    int id = genre["id"].get<int>();
     teleboyGenre.name = GetStringOrEmpty(genre, "name");
     teleboyGenre.nameEn = GetStringOrEmpty(genre, "name_en");
     genresById[id] = teleboyGenre;
 
-    if (genre.HasMember("sub_genres")) {
-      const Value& subGenres = genre["sub_genres"];
+    if (genre.contains("sub_genres")) {
+      const json& subGenres = genre["sub_genres"];
 
       for (const auto& subGenre : subGenres)
       {
         TeleboyGenre teleboySubGenre;
-        int subId = subGenre["id"].GetInt();
+        int subId = subGenre["id"].get<int>();
         teleboySubGenre.name = GetStringOrEmpty(subGenre, "name");
         teleboySubGenre.nameEn = GetStringOrEmpty(subGenre, "name_en");
         genresById[subId] = teleboySubGenre;
@@ -204,21 +203,21 @@ void TeleBoy::LoadGenres()
 
 bool TeleBoy::LoadChannels()
 {
-  Document channels_json;
+  json channels_json;
   if (!ApiGetWithoutConnectedCheck("/epg/stations?expand=logos&language=de", channels_json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading channels.");
     return false;
   }
-  Value& channels = channels_json["data"]["items"];
+  const json& channels = channels_json["data"]["items"];
   for (const auto& c : channels)
   {
-    if (!c["has_stream"].GetBool())
+    if (!c["has_stream"].get<bool>())
     {
       continue;
     }
     TeleBoyChannel channel;
-    channel.id = c["id"].GetInt();
+    channel.id = c["id"].get<int>();
     channel.name = GetStringOrEmpty(c, "name");
     channel.logoPath = "https://static.teleboy.ch/shared/stations/"
         + to_string(channel.id) + "/icon320_dark.png";
@@ -230,10 +229,10 @@ bool TeleBoy::LoadChannels()
     kodi::Log(ADDON_LOG_ERROR, "Error loading sorted channels.");
     return false;
   }
-  channels = channels_json["data"]["items"];
-  for (const auto& item : channels)
+  const json& sortedItems = channels_json["data"]["items"];
+  for (const auto& item : sortedItems)
   {
-    int cid = item.GetInt();
+    int cid = item.get<int>();
     if (channelsById.find(cid) != channelsById.end())
     {
       sortedChannels.push_back(cid);
@@ -301,7 +300,7 @@ void TeleBoy::TransferChannel(kodi::addon::PVRChannelsResultSet& results, TeleBo
   results.Add(kodiChannel);
 }
 
-PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties, const Value& stream, bool realtime)
+PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties, const json& stream, bool realtime)
 {
   string url = GetStringOrEmpty(stream, "url");
   kodi::Log(ADDON_LOG_INFO, "Play URL: %s.", url.c_str());
@@ -318,7 +317,7 @@ PVR_ERROR TeleBoy::SetStreamProperties(std::vector<kodi::addon::PVRStreamPropert
   properties.emplace_back(PVR_STREAM_PROPERTY_MIMETYPE, "application/xml+dash");
   properties.emplace_back(PVR_STREAM_PROPERTY_ISREALTIMESTREAM, realtime ? "true" : "false");
 
-  if (stream.HasMember("drm")) {
+  if (stream.contains("drm")) {
     string drmType = GetStringOrEmpty(stream["drm"], "type");
     if (drmType == "widevine") {
       string licenseUrl = GetStringOrEmpty(stream["drm"], "license_url");
@@ -336,7 +335,7 @@ PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& cha
     return PVR_ERROR_SERVER_ERROR;
   }
 
-  Document stream_json;
+  json stream_json;
   if (!ApiGet(
       "/users/" + m_session->GetUserId() + "/stream/live/" + to_string(channel.GetUniqueId())
           + "?expand=primary_image,flags&https=1" + GetStreamParameters(), stream_json, 0))
@@ -350,7 +349,7 @@ PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& cha
   UpdateEPGFromJson(stream_json["data"]["epg"]["current"], true);
   UpdateEPGFromJson(stream_json["data"]["epg"]["next"], true);
 
-  const Value& stream = stream_json["data"]["stream"];
+  const json& stream = stream_json["data"]["stream"];
   return SetStreamProperties(properties, stream, true);
 
 }
@@ -389,7 +388,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
   int sum = 0;
   while (totals == -1 || sum < totals)
   {
-    Document epg_json;
+    json epg_json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/broadcasts?begin=" + FormatDate(iStart)
             + "+00:00:00&end=" + FormatDate(iEnd + 60 * 60 * 24) + "+00:00:00&expand=logos,primary_image&limit=500&skip="
@@ -400,8 +399,8 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
           uniqueChannelId);
       return;
     }
-    totals = epg_json["data"]["total"].GetInt();
-    const Value& items = epg_json["data"]["items"];
+    totals = epg_json["data"]["total"].get<int>();
+    const json& items = epg_json["data"]["items"];
 
     std::lock_guard<std::mutex> lock(sendEpgToKodiMutex);
 
@@ -417,7 +416,7 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 }
 
 void TeleBoy::GetEPGForBroadcastAsync(const unsigned int uniqueBroadcastId) {
-  Document epg_json;
+  json epg_json;
   if (!ApiGet("/users/" + m_session->GetUserId() + "/broadcasts/" + to_string(uniqueBroadcastId) + "?expand=primary_image,flags", epg_json, 60*60)) {
     kodi::Log(ADDON_LOG_ERROR, "Error getting epg description for broadcast %i.", uniqueBroadcastId);
     return;
@@ -426,12 +425,12 @@ void TeleBoy::GetEPGForBroadcastAsync(const unsigned int uniqueBroadcastId) {
   UpdateEPGFromJson(epg_json["data"], true);
 }
 
-void TeleBoy::UpdateEPGFromJson(const Value& item, bool isDetailedEPGData) {
+void TeleBoy::UpdateEPGFromJson(const json& item, bool isDetailedEPGData) {
   kodi::addon::PVREPGTag tag;
 
-  tag.SetUniqueBroadcastId(item["id"].GetInt());
+  tag.SetUniqueBroadcastId(item["id"].get<int>());
   tag.SetTitle(GetStringOrEmpty(item, "title"));
-  tag.SetUniqueChannelId(item["station_id"].GetInt());
+  tag.SetUniqueChannelId(item["station_id"].get<int>());
   tag.SetStartTime(Utils::StringToTime(GetStringOrEmpty(item, "begin")));
   tag.SetEndTime(Utils::StringToTime(GetStringOrEmpty(item, "end")));
   tag.SetPlotOutline(GetStringOrEmpty(item, "headline"));
@@ -448,9 +447,9 @@ void TeleBoy::UpdateEPGFromJson(const Value& item, bool isDetailedEPGData) {
   tag.SetCast(""); /* not supported */
   tag.SetDirector(""); /*SA not supported */
   tag.SetWriter(""); /* not supported */
-  tag.SetYear(item.HasMember("year") ? item["year"].GetInt() : 0);
+  tag.SetYear(item.contains("year") ? item["year"].get<int>() : 0);
   tag.SetIMDBNumber(""); /* not supported */
-  if (item.HasMember("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
+  if (item.contains("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
     tag.SetIconPath("https://media.teleboy.ch/media/teleboyteaser12/" + GetStringOrEmpty(item["primary_image"], "hash") + ".jpg");
   } else {
     tag.SetIconPath("");
@@ -458,13 +457,13 @@ void TeleBoy::UpdateEPGFromJson(const Value& item, bool isDetailedEPGData) {
   tag.SetParentalRating(0); /* not supported */
   tag.SetStarRating(0); /* not supported */
   tag.SetSeriesNumber(
-      item.HasMember("serie_season") ? item["serie_season"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE);
+      item.contains("serie_season") ? item["serie_season"].get<int>() : EPG_TAG_INVALID_SERIES_EPISODE);
   tag.SetEpisodeNumber(
-      item.HasMember("serie_episode") ? item["serie_episode"].GetInt() : EPG_TAG_INVALID_SERIES_EPISODE);
+      item.contains("serie_episode") ? item["serie_episode"].get<int>() : EPG_TAG_INVALID_SERIES_EPISODE);
   tag.SetEpisodePartNumber(EPG_TAG_INVALID_SERIES_EPISODE); /* not supported */
   tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));
-  if (item.HasMember("genre_id")) {
-    int genreId = item["genre_id"].GetInt();
+  if (item.contains("genre_id")) {
+    int genreId = item["genre_id"].get<int>();
     TeleboyGenre genre = genresById[genreId];
     int kodiGenre = m_categories.Category(genre.nameEn);
     if (kodiGenre == 0) {
@@ -501,7 +500,7 @@ PVR_ERROR TeleBoy::DeleteRecording(const kodi::addon::PVRRecording& recording)
   if (!m_session->IsConnected()) {
     return PVR_ERROR_SERVER_ERROR;
   }
-  Document doc;
+  json doc;
   if (!ApiDelete("/users/" + m_session->GetUserId() + "/recordings/" + recording.GetRecordingId(), doc))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error deleting recording %s.", recording.GetRecordingId().c_str());
@@ -521,7 +520,7 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
   string type = "ready";
   while (totals == -1 || sum < totals)
   {
-    Document rec_json;
+    json rec_json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/recordings/" + type
             + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", rec_json, 10))
@@ -530,8 +529,8 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
           type.c_str());
       return PVR_ERROR_SERVER_ERROR;
     }
-    totals = rec_json["data"]["total"].GetInt();
-    const Value& items = rec_json["data"]["items"];
+    totals = rec_json["data"]["total"].get<int>();
+    const json& items = rec_json["data"]["items"];
     for (const auto& item : items)
     {
       sum++;
@@ -539,30 +538,30 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
       kodi::addon::PVRRecording tag;
 
       tag.SetIsDeleted(false);
-      tag.SetRecordingId(to_string(item["id"].GetInt()));
+      tag.SetRecordingId(to_string(item["id"].get<int>()));
       tag.SetTitle(GetStringOrEmpty(item, "title"));
       tag.SetEpisodeName(GetStringOrEmpty(item, "subtitle"));
       tag.SetPlot(GetStringOrEmpty(item, "description"));
       tag.SetPlotOutline(GetStringOrEmpty(item, "short_description"));
-      tag.SetChannelUid(item["station_id"].GetInt());
+      tag.SetChannelUid(item["station_id"].get<int>());
       tag.SetIconPath(channelsById[tag.GetChannelUid()].logoPath);
-      if (item.HasMember("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
+      if (item.contains("primary_image") && GetStringOrEmpty(item["primary_image"], "type") != "default") {
         tag.SetThumbnailPath("https://media.teleboy.ch/media/teleboyteaser12/" + GetStringOrEmpty(item["primary_image"], "hash") + ".jpg");
       }
       tag.SetChannelName(channelsById[tag.GetChannelUid()].name);
       tag.SetRecordingTime(Utils::StringToTime(GetStringOrEmpty(item, "begin")));
       time_t endTime = Utils::StringToTime(GetStringOrEmpty(item, "end"));
       tag.SetDuration(endTime - tag.GetRecordingTime());
-      tag.SetEPGEventId(item["id"].GetInt());
-      if (item.HasMember("serie_season")) {
-        tag.SetSeriesNumber(item["serie_season"].GetInt());
+      tag.SetEPGEventId(item["id"].get<int>());
+      if (item.contains("serie_season")) {
+        tag.SetSeriesNumber(item["serie_season"].get<int>());
         tag.SetDirectory(tag.GetTitle());
       }
-      if (item.HasMember("serie_episode")) {
-        tag.SetEpisodeNumber(item["serie_episode"].GetInt());
+      if (item.contains("serie_episode")) {
+        tag.SetEpisodeNumber(item["serie_episode"].get<int>());
       }
-      if (item.HasMember("genre_id")) {
-        int genreId = item["genre_id"].GetInt();
+      if (item.contains("genre_id")) {
+        int genreId = item["genre_id"].get<int>();
         TeleboyGenre genre = genresById[genreId];
         int kodiGenre = m_categories.Category(genre.nameEn);
         if (kodiGenre == 0) {
@@ -583,12 +582,12 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
 
 PVR_ERROR TeleBoy::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  Document stream_json;
+  json stream_json;
   PVR_ERROR err = FetchJsonForStream(recording.GetRecordingId(), stream_json);
   if (err != PVR_ERROR_NO_ERROR) {
     return err;
   }
-  const Value& stream = stream_json["data"]["stream"];
+  const json& stream = stream_json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
 }
 
@@ -628,7 +627,7 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
   string type = "planned";
   while (totals == -1 || sum < totals)
   {
-    Document timer_json;
+    json timer_json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/recordings/" + type
             + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", timer_json, 10))
@@ -637,25 +636,25 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
           type.c_str());
       return PVR_ERROR_SERVER_ERROR;
     }
-    totals = timer_json["data"]["total"].GetInt();
-    const Value& items = timer_json["data"]["items"];
+    totals = timer_json["data"]["total"].get<int>();
+    const json& items = timer_json["data"]["items"];
     for (const auto& item : items)
     {
       sum++;
 
       kodi::addon::PVRTimer tag;
 
-      tag.SetClientIndex(item["id"].GetInt());
+      tag.SetClientIndex(item["id"].get<int>());
       tag.SetTitle(GetStringOrEmpty(item, "title"));
       tag.SetSummary(GetStringOrEmpty(item, "subtitle"));
       tag.SetStartTime(Utils::StringToTime(GetStringOrEmpty(item, "begin")));
       tag.SetEndTime(Utils::StringToTime(GetStringOrEmpty(item, "end")));
       tag.SetState(PVR_TIMER_STATE_SCHEDULED);
       tag.SetTimerType(1);
-      tag.SetEPGUid(item["id"].GetInt());
-      tag.SetClientChannelUid(item["station_id"].GetInt());
-      if (item.HasMember("genre_id")) {
-        int genreId = item["genre_id"].GetInt();
+      tag.SetEPGUid(item["id"].get<int>());
+      tag.SetClientChannelUid(item["station_id"].get<int>());
+      if (item.contains("genre_id")) {
+        int genreId = item["genre_id"].get<int>();
         TeleboyGenre genre = genresById[genreId];
         int kodiGenre = m_categories.Category(genre.nameEn);
         if (kodiGenre != 0) {
@@ -685,7 +684,7 @@ PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
 
   string postData = "{\"broadcast\": " + to_string(timer.GetEPGUid())
       + ", \"alternative\": false}";
-  Document add_json;
+  json add_json;
   if (!ApiPost("/users/" + m_session->GetUserId() + "/recordings", postData, add_json))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error recording program %i.", timer.GetEPGUid());
@@ -703,8 +702,8 @@ PVR_ERROR TeleBoy::DeleteTimer(const kodi::addon::PVRTimer& timer, bool forceDel
     return PVR_ERROR_SERVER_ERROR;
   }
 
-  Document doc;
-  if (!ApiDelete("/users/" + m_session->GetUserId() + "/recordings/" + to_string(timer.GetClientIndex()), doc))
+  json del_json;
+  if (!ApiDelete("/users/" + m_session->GetUserId() + "/recordings/" + to_string(timer.GetClientIndex()), del_json))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error deleting timer %i.", timer.GetClientIndex());
     return PVR_ERROR_SERVER_ERROR;
@@ -760,7 +759,7 @@ PVR_ERROR TeleBoy::IsEPGTagRecordable(const kodi::addon::PVREPGTag& tag, bool& i
 
 PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  Document stream_json;
+  json stream_json;
   PVR_ERROR err = FetchJsonForStream(to_string(tag.GetUniqueBroadcastId()), stream_json);
   if (err != PVR_ERROR_NO_ERROR) {
     return err;
@@ -770,7 +769,7 @@ PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, 
   UpdateEPGFromJson(stream_json["data"]["epg"]["current"], true);
   UpdateEPGFromJson(stream_json["data"]["epg"]["next"], true);
 
-  const Value& stream = stream_json["data"]["stream"];
+  const json& stream = stream_json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
 }
 
@@ -794,13 +793,13 @@ PVR_ERROR TeleBoy::GetEPGTagEdl(const kodi::addon::PVREPGTag& tag, std::vector<k
   return PVR_ERROR_NO_ERROR;
 }
 
-string TeleBoy::GetStringOrEmpty(const Value& jsonValue, const char* fieldName)
+string TeleBoy::GetStringOrEmpty(const json& jsonValue, const char* fieldName)
 {
-  if (!jsonValue.HasMember(fieldName) || !jsonValue[fieldName].IsString())
+  if (!jsonValue.contains(fieldName) || !jsonValue[fieldName].is_string())
   {
     return "";
   }
-  return jsonValue[fieldName].GetString();
+  return jsonValue[fieldName].get<std::string>();
 }
 
 std::string TeleBoy::GetStreamParameters() {
@@ -809,7 +808,7 @@ std::string TeleBoy::GetStreamParameters() {
   return params;
 }
 
-PVR_ERROR TeleBoy::FetchJsonForStream(const std::string& streamId, Document& stream_json)
+PVR_ERROR TeleBoy::FetchJsonForStream(const std::string& streamId, json& stream_json)
 {
   if (!m_session->IsConnected()) {
     return PVR_ERROR_SERVER_ERROR;
@@ -827,23 +826,23 @@ void TeleBoy::AddCommercialBreaks(const std::string& streamId, std::vector<kodi:
     return;
   }
 
-  Document stream_json;
+  json stream_json;
   PVR_ERROR err = FetchJsonForStream(streamId, stream_json);
   if (err != PVR_ERROR_NO_ERROR) {
     return;
   }
-  const Value& stream = stream_json["data"]["stream"];
+  const json& stream = stream_json["data"]["stream"];
 
-  if (stream.HasMember("schedule") && stream["schedule"].IsArray()) {
-    const Value& schedule = stream["schedule"];
+  if (stream.contains("schedule") && stream["schedule"].is_array()) {
+    const json& schedule = stream["schedule"];
     for (const auto& schedule_item : schedule) {
-      if (schedule_item.HasMember("ad_breaks") && schedule_item["ad_breaks"].IsArray()) {
-        const Value& ad_breaks = schedule_item["ad_breaks"];
+      if (schedule_item.contains("ad_breaks") && schedule_item["ad_breaks"].is_array()) {
+        const json& ad_breaks = schedule_item["ad_breaks"];
         for (const auto& ad_break : ad_breaks) {
-          if (ad_break.HasMember("start") && ad_break.HasMember("end")) {
+          if (ad_break.contains("start") && ad_break.contains("end")) {
             kodi::addon::PVREDLEntry entry;
-            entry.SetStart(ad_break["start"].GetInt() + 5000);
-            entry.SetEnd(ad_break["end"].GetInt() - 5000);
+            entry.SetStart(ad_break["start"].get<int>() + 5000);
+            entry.SetEnd(ad_break["end"].get<int>() - 5000);
             entry.SetType(PVR_EDL_TYPE_COMBREAK);
             edl.emplace_back(entry);
           }

@@ -2,7 +2,7 @@
 #include "categories.h"
 #include <map>
 #include <mutex>
-#include "rapidjson/document.h"
+#include <nlohmann/json.hpp>
 #include "sql/ParameterDB.h"
 #include "http/HttpClient.h"
 #include "Session.h"
@@ -10,7 +10,6 @@
 #include "kodi/addon-instance/PVR.h"
 
 using namespace std;
-using namespace rapidjson;
 
 struct TeleBoyChannel
 {
@@ -83,13 +82,13 @@ private:
   Session *m_session;
 
   virtual string FormatDate(time_t dateTime);
-  virtual bool ApiGetResult(string content, Document &doc);
-  virtual bool ApiGet(string url, Document &doc, time_t cacheDuration);
-  virtual bool ApiGetWithoutConnectedCheck(string url, Document &doc, time_t timeout);
-  virtual bool ApiPost(string url, string postData, Document &doc);
-  virtual bool ApiDelete(string url, Document &doc);
+  virtual bool ApiGetResult(string content, nlohmann::json& doc);
+  virtual bool ApiGet(string url, nlohmann::json& doc, time_t cacheDuration);
+  virtual bool ApiGetWithoutConnectedCheck(string url, nlohmann::json& doc, time_t timeout);
+  virtual bool ApiPost(string url, string postData, nlohmann::json& doc);
+  virtual bool ApiDelete(string url, nlohmann::json& doc);
   virtual string FollowRedirect(string url);
-  virtual string GetStringOrEmpty(const Value& jsonValue, const char* fieldName);
+  virtual string GetStringOrEmpty(const nlohmann::json& jsonValue, const char* fieldName);
   void TransferChannel(kodi::addon::PVRChannelsResultSet& results, TeleBoyChannel channel,
       int channelNum);
   bool WriteDataJson();
@@ -98,9 +97,9 @@ private:
   void LoadGenres();
   bool LoadChannels();
   PVR_ERROR SetStreamProperties(std::vector<kodi::addon::PVRStreamProperty>& properties,
-        const Value& stream, bool realtime);
+        const nlohmann::json& stream, bool realtime);
   void AddTimerType(std::vector<kodi::addon::PVRTimerType>& types, int idx, int attributes);
-  PVR_ERROR FetchJsonForStream(const std::string& streamId, rapidjson::Document& stream_json);
+  PVR_ERROR FetchJsonForStream(const std::string& streamId, nlohmann::json& stream_json);
   void AddCommercialBreaks(const std::string& streamId, std::vector<kodi::addon::PVREDLEntry>& edl);
-  void UpdateEPGFromJson(const Value& item, bool isDetailedEPGData);
+  void UpdateEPGFromJson(const nlohmann::json& item, bool isDetailedEPGData);
 };
