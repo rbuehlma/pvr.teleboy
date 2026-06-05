@@ -5,11 +5,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 
 find_package(PkgConfig)
 find_package(Kodi REQUIRED)
-find_package(RapidJSON REQUIRED)
+find_package(NlohmannJson REQUIRED)
 find_package(Sqlite3 REQUIRED)
 
 include_directories(${KODI_INCLUDE_DIR}
-                    ${RAPIDJSON_INCLUDE_DIRS}
+                    ${NLOHMANNJSON_INCLUDE_DIRS}
                     ${SQLITE3_INCLUDE_DIRS}
 )
 
