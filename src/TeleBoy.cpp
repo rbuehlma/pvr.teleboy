@@ -179,10 +179,8 @@ void TeleBoy::LoadGenres()
     return;
   }
   Value& genres = genres_json["data"]["items"];
-  for (Value::ConstValueIterator itr1 = genres.Begin();
-      itr1 != genres.End(); ++itr1)
+  for (const auto& genre : genres)
   {
-    const Value &genre = (*itr1);
     TeleboyGenre teleboyGenre;
     int id = genre["id"].GetInt();
     teleboyGenre.name = GetStringOrEmpty(genre, "name");
@@ -192,10 +190,8 @@ void TeleBoy::LoadGenres()
     if (genre.HasMember("sub_genres")) {
       const Value& subGenres = genre["sub_genres"];
 
-      for (Value::ConstValueIterator itr1 = subGenres.Begin();
-          itr1 != subGenres.End(); ++itr1)
+      for (const auto& subGenre : subGenres)
       {
-        const Value &subGenre = (*itr1);
         TeleboyGenre teleboySubGenre;
         int subId = subGenre["id"].GetInt();
         teleboySubGenre.name = GetStringOrEmpty(subGenre, "name");
@@ -215,10 +211,8 @@ bool TeleBoy::LoadChannels()
     return false;
   }
   Value& channels = channels_json["data"]["items"];
-  for (Value::ConstValueIterator itr1 = channels.Begin();
-      itr1 != channels.End(); ++itr1)
+  for (const auto& c : channels)
   {
-    const Value &c = (*itr1);
     if (!c["has_stream"].GetBool())
     {
       continue;
@@ -237,10 +231,9 @@ bool TeleBoy::LoadChannels()
     return false;
   }
   channels = channels_json["data"]["items"];
-  for (Value::ConstValueIterator itr1 = channels.Begin();
-      itr1 != channels.End(); ++itr1)
+  for (const auto& item : channels)
   {
-    int cid = (*itr1).GetInt();
+    int cid = item.GetInt();
     if (channelsById.find(cid) != channelsById.end())
     {
       sortedChannels.push_back(cid);
@@ -412,13 +405,10 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 
     std::lock_guard<std::mutex> lock(sendEpgToKodiMutex);
 
-    for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
-        ++itr1)
+    for (const auto& item : items)
     {
-      const Value& item = (*itr1);
       sum++;
       UpdateEPGFromJson(item, false);
-
     }
     kodi::Log(ADDON_LOG_DEBUG, "Loaded %i of %i epg entries for channel %i.", sum,
         totals, uniqueChannelId);
@@ -542,10 +532,8 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
     }
     totals = rec_json["data"]["total"].GetInt();
     const Value& items = rec_json["data"]["items"];
-    for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
-        ++itr1)
+    for (const auto& item : items)
     {
-      const Value& item = (*itr1);
       sum++;
 
       kodi::addon::PVRRecording tag;
@@ -651,10 +639,8 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
     }
     totals = timer_json["data"]["total"].GetInt();
     const Value& items = timer_json["data"]["items"];
-    for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
-        ++itr1)
+    for (const auto& item : items)
     {
-      const Value& item = (*itr1);
       sum++;
 
       kodi::addon::PVRTimer tag;
@@ -850,12 +836,10 @@ void TeleBoy::AddCommercialBreaks(const std::string& streamId, std::vector<kodi:
 
   if (stream.HasMember("schedule") && stream["schedule"].IsArray()) {
     const Value& schedule = stream["schedule"];
-    for (Value::ConstValueIterator sched_itr = schedule.Begin(); sched_itr != schedule.End(); ++sched_itr) {
-      const Value& schedule_item = (*sched_itr);
+    for (const auto& schedule_item : schedule) {
       if (schedule_item.HasMember("ad_breaks") && schedule_item["ad_breaks"].IsArray()) {
         const Value& ad_breaks = schedule_item["ad_breaks"];
-        for (Value::ConstValueIterator ad_itr = ad_breaks.Begin(); ad_itr != ad_breaks.End(); ++ad_itr) {
-          const Value& ad_break = (*ad_itr);
+        for (const auto& ad_break : ad_breaks) {
           if (ad_break.HasMember("start") && ad_break.HasMember("end")) {
             kodi::addon::PVREDLEntry entry;
             entry.SetStart(ad_break["start"].GetInt() + 5000);
