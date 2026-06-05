@@ -172,13 +172,13 @@ PVR_ERROR TeleBoy::GetConnectionString(std::string& connection)
 
 void TeleBoy::LoadGenres()
 {
-  Document json;
-  if (!ApiGetWithoutConnectedCheck("/epg/genres", json, 3600))
+  Document genres_json;
+  if (!ApiGetWithoutConnectedCheck("/epg/genres", genres_json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading genres.");
     return;
   }
-  Value& genres = json["data"]["items"];
+  Value& genres = genres_json["data"]["items"];
   for (Value::ConstValueIterator itr1 = genres.Begin();
       itr1 != genres.End(); ++itr1)
   {
@@ -208,13 +208,13 @@ void TeleBoy::LoadGenres()
 
 bool TeleBoy::LoadChannels()
 {
-  Document json;
-  if (!ApiGetWithoutConnectedCheck("/epg/stations?expand=logos&language=de", json, 3600))
+  Document channels_json;
+  if (!ApiGetWithoutConnectedCheck("/epg/stations?expand=logos&language=de", channels_json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading channels.");
     return false;
   }
-  Value& channels = json["data"]["items"];
+  Value& channels = channels_json["data"]["items"];
   for (Value::ConstValueIterator itr1 = channels.Begin();
       itr1 != channels.End(); ++itr1)
   {
@@ -231,12 +231,12 @@ bool TeleBoy::LoadChannels()
     channelsById[channel.id] = channel;
   }
 
-  if (!ApiGetWithoutConnectedCheck("/users/" + m_session->GetUserId() + "/stations", json, 3600))
+  if (!ApiGetWithoutConnectedCheck("/users/" + m_session->GetUserId() + "/stations", channels_json, 3600))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error loading sorted channels.");
     return false;
   }
-  channels = json["data"]["items"];
+  channels = channels_json["data"]["items"];
   for (Value::ConstValueIterator itr1 = channels.Begin();
       itr1 != channels.End(); ++itr1)
   {
@@ -343,21 +343,21 @@ PVR_ERROR TeleBoy::GetChannelStreamProperties(const kodi::addon::PVRChannel& cha
     return PVR_ERROR_SERVER_ERROR;
   }
 
-  Document json;
+  Document stream_json;
   if (!ApiGet(
       "/users/" + m_session->GetUserId() + "/stream/live/" + to_string(channel.GetUniqueId())
-          + "?expand=primary_image,flags&https=1" + GetStreamParameters(), json, 0))
+          + "?expand=primary_image,flags&https=1" + GetStreamParameters(), stream_json, 0))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error getting live stream url for channel %i.",
         channel.GetUniqueId());
     return PVR_ERROR_FAILED;
   }
 
-  UpdateEPGFromJson(json["data"]["epg"]["last"], true);
-  UpdateEPGFromJson(json["data"]["epg"]["current"], true);
-  UpdateEPGFromJson(json["data"]["epg"]["next"], true);
+  UpdateEPGFromJson(stream_json["data"]["epg"]["last"], true);
+  UpdateEPGFromJson(stream_json["data"]["epg"]["current"], true);
+  UpdateEPGFromJson(stream_json["data"]["epg"]["next"], true);
 
-  const Value& stream = json["data"]["stream"];
+  const Value& stream = stream_json["data"]["stream"];
   return SetStreamProperties(properties, stream, true);
 
 }
@@ -396,19 +396,19 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
   int sum = 0;
   while (totals == -1 || sum < totals)
   {
-    Document json;
+    Document epg_json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/broadcasts?begin=" + FormatDate(iStart)
             + "+00:00:00&end=" + FormatDate(iEnd + 60 * 60 * 24) + "+00:00:00&expand=logos,primary_image&limit=500&skip="
             + to_string(sum) + "&sort=station&station="
-            + to_string(uniqueChannelId), json, 60*60*24))
+            + to_string(uniqueChannelId), epg_json, 60*60*24))
     {
       kodi::Log(ADDON_LOG_ERROR, "Error getting epg for channel %i.",
           uniqueChannelId);
       return;
     }
-    totals = json["data"]["total"].GetInt();
-    const Value& items = json["data"]["items"];
+    totals = epg_json["data"]["total"].GetInt();
+    const Value& items = epg_json["data"]["items"];
 
     std::lock_guard<std::mutex> lock(sendEpgToKodiMutex);
 
@@ -427,13 +427,13 @@ void TeleBoy::GetEPGForChannelAsync(int uniqueChannelId, time_t iStart,
 }
 
 void TeleBoy::GetEPGForBroadcastAsync(const unsigned int uniqueBroadcastId) {
-  Document json;
-  if (!ApiGet("/users/" + m_session->GetUserId() + "/broadcasts/" + to_string(uniqueBroadcastId) + "?expand=primary_image,flags", json, 60*60)) {
+  Document epg_json;
+  if (!ApiGet("/users/" + m_session->GetUserId() + "/broadcasts/" + to_string(uniqueBroadcastId) + "?expand=primary_image,flags", epg_json, 60*60)) {
     kodi::Log(ADDON_LOG_ERROR, "Error getting epg description for broadcast %i.", uniqueBroadcastId);
     return;
   }
 
-  UpdateEPGFromJson(json["data"], true);
+  UpdateEPGFromJson(epg_json["data"], true);
 }
 
 void TeleBoy::UpdateEPGFromJson(const Value& item, bool isDetailedEPGData) {
@@ -531,17 +531,17 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
   string type = "ready";
   while (totals == -1 || sum < totals)
   {
-    Document json;
+    Document rec_json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/recordings/" + type
-            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 10))
+            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", rec_json, 10))
     {
       kodi::Log(ADDON_LOG_ERROR, "Error getting recordings of type %s.",
           type.c_str());
       return PVR_ERROR_SERVER_ERROR;
     }
-    totals = json["data"]["total"].GetInt();
-    const Value& items = json["data"]["items"];
+    totals = rec_json["data"]["total"].GetInt();
+    const Value& items = rec_json["data"]["items"];
     for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
         ++itr1)
     {
@@ -595,12 +595,12 @@ PVR_ERROR TeleBoy::GetRecordings(bool deleted, kodi::addon::PVRRecordingsResultS
 
 PVR_ERROR TeleBoy::GetRecordingStreamProperties(const kodi::addon::PVRRecording& recording, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  Document json;
-  PVR_ERROR err = FetchJsonForStream(recording.GetRecordingId(), json);
+  Document stream_json;
+  PVR_ERROR err = FetchJsonForStream(recording.GetRecordingId(), stream_json);
   if (err != PVR_ERROR_NO_ERROR) {
     return err;
   }
-  const Value& stream = json["data"]["stream"];
+  const Value& stream = stream_json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
 }
 
@@ -640,17 +640,17 @@ PVR_ERROR TeleBoy::GetTimers(kodi::addon::PVRTimersResultSet& results)
   string type = "planned";
   while (totals == -1 || sum < totals)
   {
-    Document json;
+    Document timer_json;
     if (!ApiGet(
         "/users/" + m_session->GetUserId() + "/recordings/" + type
-            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", json, 10))
+            + "?desc=1&expand=flags,logos&limit=100&skip=" + to_string(sum) + "&sort=date", timer_json, 10))
     {
       kodi::Log(ADDON_LOG_ERROR, "Error getting recordings of type %s.",
           type.c_str());
       return PVR_ERROR_SERVER_ERROR;
     }
-    totals = json["data"]["total"].GetInt();
-    const Value& items = json["data"]["items"];
+    totals = timer_json["data"]["total"].GetInt();
+    const Value& items = timer_json["data"]["items"];
     for (Value::ConstValueIterator itr1 = items.Begin(); itr1 != items.End();
         ++itr1)
     {
@@ -699,8 +699,8 @@ PVR_ERROR TeleBoy::AddTimer(const kodi::addon::PVRTimer& timer)
 
   string postData = "{\"broadcast\": " + to_string(timer.GetEPGUid())
       + ", \"alternative\": false}";
-  Document json;
-  if (!ApiPost("/users/" + m_session->GetUserId() + "/recordings", postData, json))
+  Document add_json;
+  if (!ApiPost("/users/" + m_session->GetUserId() + "/recordings", postData, add_json))
   {
     kodi::Log(ADDON_LOG_ERROR, "Error recording program %i.", timer.GetEPGUid());
     return PVR_ERROR_SERVER_ERROR;
@@ -774,17 +774,17 @@ PVR_ERROR TeleBoy::IsEPGTagRecordable(const kodi::addon::PVREPGTag& tag, bool& i
 
 PVR_ERROR TeleBoy::GetEPGTagStreamProperties(const kodi::addon::PVREPGTag& tag, std::vector<kodi::addon::PVRStreamProperty>& properties)
 {
-  Document json;
-  PVR_ERROR err = FetchJsonForStream(to_string(tag.GetUniqueBroadcastId()), json);
+  Document stream_json;
+  PVR_ERROR err = FetchJsonForStream(to_string(tag.GetUniqueBroadcastId()), stream_json);
   if (err != PVR_ERROR_NO_ERROR) {
     return err;
   }
 
-  UpdateEPGFromJson(json["data"]["epg"]["last"], true);
-  UpdateEPGFromJson(json["data"]["epg"]["current"], true);
-  UpdateEPGFromJson(json["data"]["epg"]["next"], true);
+  UpdateEPGFromJson(stream_json["data"]["epg"]["last"], true);
+  UpdateEPGFromJson(stream_json["data"]["epg"]["current"], true);
+  UpdateEPGFromJson(stream_json["data"]["epg"]["next"], true);
 
-  const Value& stream = json["data"]["stream"];
+  const Value& stream = stream_json["data"]["stream"];
   return SetStreamProperties(properties, stream, false);
 }
 
@@ -823,12 +823,12 @@ std::string TeleBoy::GetStreamParameters() {
   return params;
 }
 
-PVR_ERROR TeleBoy::FetchJsonForStream(const std::string& streamId, Document& json)
+PVR_ERROR TeleBoy::FetchJsonForStream(const std::string& streamId, Document& stream_json)
 {
   if (!m_session->IsConnected()) {
     return PVR_ERROR_SERVER_ERROR;
   }
-  if (!ApiGet("/users/" + m_session->GetUserId() + "/stream/" + streamId + "?" + GetStreamParameters(), json, 0)) {
+  if (!ApiGet("/users/" + m_session->GetUserId() + "/stream/" + streamId + "?" + GetStreamParameters(), stream_json, 0)) {
     kodi::Log(ADDON_LOG_ERROR, "Could not get JSON data for: %s.", streamId.c_str());
     return PVR_ERROR_FAILED;
   }
@@ -841,12 +841,12 @@ void TeleBoy::AddCommercialBreaks(const std::string& streamId, std::vector<kodi:
     return;
   }
 
-  Document json;
-  PVR_ERROR err = FetchJsonForStream(streamId, json);
+  Document stream_json;
+  PVR_ERROR err = FetchJsonForStream(streamId, stream_json);
   if (err != PVR_ERROR_NO_ERROR) {
     return;
   }
-  const Value& stream = json["data"]["stream"];
+  const Value& stream = stream_json["data"]["stream"];
 
   if (stream.HasMember("schedule") && stream["schedule"].IsArray()) {
     const Value& schedule = stream["schedule"];
